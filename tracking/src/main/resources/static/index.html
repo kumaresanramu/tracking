@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#2196F3">
+    <meta name="description" content="Personal expense tracking with Google Sheets integration">
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Apple PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Expense Tracker">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/components.css">
+    
+    <!-- Chart.js for analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-container">
+                <h1 class="nav-title">Expense Tracker</h1>
+                
+                <!-- Mobile menu toggle -->
+                <button class="nav-menu-toggle" id="nav-menu-toggle" aria-label="Toggle navigation menu">
+                    <span>☰</span>
+                </button>
+                
+                <div class="nav-menu" id="nav-menu">
+                    <button class="nav-item active" data-page="dashboard">Dashboard</button>
+                    <button class="nav-item" data-page="expenses">Expenses</button>
+                    <button class="nav-item" data-page="analytics">Analytics</button>
+                    <button class="nav-item" data-page="reminders">Reminders</button>
+                    <button class="nav-item" data-page="settings">Settings</button>
+                </div>
+                
+                <div class="sync-status">
+                    <div id="sync-status-container">
+                        <span id="sync-indicator" class="sync-indicator offline">●</span>
+                        <span id="sync-text">Offline</span>
+                    </div>
+                    <div id="connection-status"></div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div id="dashboard-page" class="page active">
+                <div class="dashboard-container">
+                    <div class="quick-stats">
+                        <div class="stat-card">
+                            <h3>This Month</h3>
+                            <p class="stat-value" id="monthly-total">$0.00</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Last 7 Days</h3>
+                            <p class="stat-value" id="weekly-total">$0.00</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Expenses</h3>
+                            <p class="stat-value" id="total-count">0</p>
+                        </div>
+                    </div>
+                    
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" id="quick-add-expense">+ Add Expense</button>
+                        <button class="btn btn-secondary" id="view-analytics">View Analytics</button>
+                    </div>
+                    
+                    <div class="recent-expenses">
+                        <h3>Recent Expenses</h3>
+                        <div id="recent-expenses-list" class="expense-list">
+                            <!-- Recent expenses will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expenses Page -->
+            <div id="expenses-page" class="page">
+                <div class="expenses-container">
+                    <div class="expense-form-container">
+                        <h2>Add New Expense</h2>
+                        <form id="expense-form" class="expense-form">
+                            <div class="form-group">
+                                <label for="expense-description">Description</label>
+                                <input type="text" id="expense-description" name="description" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="expense-amount">Amount</label>
+                                <input type="number" id="expense-amount" name="amount" step="0.01" min="0" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="expense-date">Date</label>
+                                <input type="date" id="expense-date" name="date" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="expense-category">Category</label>
+                                <select id="expense-category" name="categoryId" required>
+                                    <option value="">Select a category</option>
+                                    <!-- Categories will be populated dynamically -->
+                                </select>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Add Expense</button>
+                                <button type="reset" class="btn btn-secondary">Clear</button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="expense-list-container">
+                        <h2>Monthly Expenses</h2>
+                        <div class="month-selector">
+                            <button id="prev-month" class="btn btn-small">‹</button>
+                            <span id="current-month-year"></span>
+                            <button id="next-month" class="btn btn-small">›</button>
+                        </div>
+                        <div id="monthly-expenses-list" class="expense-list">
+                            <!-- Monthly expenses will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Page -->
+            <div id="analytics-page" class="page">
+                <div class="analytics-container">
+                    <h2>Expense Analytics</h2>
+                    
+                    <div class="chart-container">
+                        <div class="chart-section">
+                            <h3>Monthly Trends</h3>
+                            <canvas id="monthly-trends-chart"></canvas>
+                        </div>
+                        
+                        <div class="chart-section">
+                            <h3>Category Breakdown</h3>
+                            <canvas id="category-breakdown-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reminders Page -->
+            <div id="reminders-page" class="page">
+                <div class="reminders-container">
+                    <h2>Payment Reminders</h2>
+                    <div id="reminders-list" class="reminders-list">
+                        <!-- Reminders will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settings-page" class="page">
+                <div class="settings-container">
+                    <h2>Settings</h2>
+                    <div class="settings-section">
+                        <h3>Google Sheets Integration</h3>
+                        <div class="setting-item">
+                            <label>Sync Status</label>
+                            <span id="sheets-sync-status">Connected</span>
+                        </div>
+                        <div class="setting-item">
+                            <label>Auto Sync</label>
+                            <input type="checkbox" id="auto-sync-enabled" checked>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/error-handler.js"></script>
+    <script src="/js/expense-service.js"></script>
+    <script src="/js/sync-service.js"></script>
+    <script src="/js/analytics.js"></script>
+    <script src="/js/ui-components.js"></script>
+    <script src="/js/app.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
