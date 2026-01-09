@@ -199,21 +199,22 @@ This implementation plan breaks down the expense tracking system into discrete c
     - **Property 23: Sync Status Display**
     - **Validates: Requirements 9.5**
 
-- [-] 14. Final integration and testing
+- [x] 14. Final integration and testing
   - [x] 14.1 Wire all components together
     - Connect frontend to backend APIs
     - Integrate Google Sheets with expense operations
     - Test end-to-end expense creation and sync workflow
     - _Requirements: All requirements integration_
 
-  - [-] 14.2 Write integration tests
+  - [x] 14.2 Write integration tests
     - Test complete expense lifecycle (create, sync, view, update)
     - Test offline-to-online transition scenarios
     - Test payment reminder workflow
     - _Requirements: All requirements integration_
 
-- [ ] 15. Final checkpoint - Complete system validation
+- [x] 15. Final checkpoint - Complete system validation
   - Ensure all tests pass, ask the user if questions arise.
+
 
 ## Notes
 
