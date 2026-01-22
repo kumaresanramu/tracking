@@ -1340,15 +1340,279 @@ class ExpenseTrackerApp {
         return setting ? setting.value : defaultValue;
     }
 
-    // Missing methods for reminders and other functionality
+    // Enhanced reminder methods
     showAddReminderForm() {
-        // Simple implementation for now
-        const reminderName = prompt('Enter reminder name:');
-        const reminderAmount = prompt('Enter reminder amount:');
-        const reminderDate = prompt('Enter due date (YYYY-MM-DD):');
+        const modalContent = `
+            <div class="reminder-form-container">
+                <div class="form-header">
+                    <h3>💰 Create Payment Reminder</h3>
+                    <p>Set up automated reminders for recurring bills and payments</p>
+                </div>
+                
+                <div class="reminder-form">
+                    <div class="form-section">
+                        <h4>📝 Basic Information</h4>
+                        <div class="form-group">
+                            <label for="reminder-title">Reminder Title *</label>
+                            <input type="text" id="reminder-title" name="title" 
+                                   placeholder="e.g., Monthly Rent Payment" required
+                                   class="form-input">
+                            <small>Give your reminder a clear, descriptive name</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="reminder-description">Description</label>
+                            <textarea id="reminder-description" name="description" 
+                                      placeholder="Additional details about this reminder" 
+                                      rows="3" class="form-input"></textarea>
+                            <small>Optional: Add any additional notes or details</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h4>💵 Payment Details</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="reminder-amount">Amount</label>
+                                <div class="input-with-icon">
+                                    <span class="input-icon">$</span>
+                                    <input type="number" id="reminder-amount" name="amount" 
+                                           step="0.01" min="0" placeholder="0.00" class="form-input">
+                                </div>
+                                <small>Leave blank if amount varies</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="reminder-category">Category</label>
+                                <select id="reminder-category" name="categoryId" class="form-input">
+                                    <option value="">Select category</option>
+                                    ${this.categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}
+                                </select>
+                                <small>Choose the expense category</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h4>📅 Scheduling</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="reminder-due-date">Due Date *</label>
+                                <input type="date" id="reminder-due-date" name="dueDate" 
+                                       required class="form-input" min="${new Date().toISOString().split('T')[0]}">
+                                <small>When is this payment due?</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="reminder-frequency">Frequency *</label>
+                                <select id="reminder-frequency" name="frequency" required class="form-input">
+                                    <option value="ONCE">One-time payment</option>
+                                    <option value="WEEKLY">Weekly</option>
+                                    <option value="MONTHLY" selected>Monthly</option>
+                                    <option value="YEARLY">Yearly</option>
+                                </select>
+                                <small>How often does this payment occur?</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="reminder-advance-days">Reminder Timing</label>
+                            <select id="reminder-advance-days" name="advanceDays" class="form-input">
+                                <option value="0">On the due date</option>
+                                <option value="1" selected>1 day before</option>
+                                <option value="3">3 days before</option>
+                                <option value="7">1 week before</option>
+                                <option value="14">2 weeks before</option>
+                            </select>
+                            <small>When should we remind you?</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h4>⚙️ Options</h4>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="reminder-auto-create" name="autoCreateExpense">
+                                <span class="checkmark"></span>
+                                <span class="checkbox-text">
+                                    <strong>Auto-create expense</strong>
+                                    <small>Automatically add this as an expense when due</small>
+                                </span>
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="reminder-high-priority" name="highPriority">
+                                <span class="checkmark"></span>
+                                <span class="checkbox-text">
+                                    <strong>High priority</strong>
+                                    <small>Mark this reminder as high priority</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-preview">
+                    <h4>📋 Preview</h4>
+                    <div id="reminder-preview" class="preview-content">
+                        <p>Fill in the form to see a preview of your reminder</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.ui.showModal('Create Payment Reminder', modalContent, {
+            onConfirm: () => this.handleAddReminder(),
+            confirmText: '✅ Create Reminder',
+            cancelText: '❌ Cancel',
+            size: 'large'
+        });
+
+        // Set up form preview
+        this.setupReminderFormPreview();
         
-        if (reminderName && reminderAmount && reminderDate) {
-            this.ui.showToast('Reminder functionality coming soon!', 'info');
+        // Set default date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('reminder-due-date').value = tomorrow.toISOString().split('T')[0];
+    }
+
+    setupReminderFormPreview() {
+        const formInputs = ['reminder-title', 'reminder-amount', 'reminder-due-date', 'reminder-frequency', 'reminder-advance-days'];
+        
+        formInputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.addEventListener('input', () => this.updateReminderPreview());
+                input.addEventListener('change', () => this.updateReminderPreview());
+            }
+        });
+        
+        // Initial preview update
+        setTimeout(() => this.updateReminderPreview(), 100);
+    }
+
+    updateReminderPreview() {
+        const title = document.getElementById('reminder-title')?.value || 'Your Reminder';
+        const amount = document.getElementById('reminder-amount')?.value;
+        const dueDate = document.getElementById('reminder-due-date')?.value;
+        const frequency = document.getElementById('reminder-frequency')?.value;
+        const advanceDays = document.getElementById('reminder-advance-days')?.value;
+        
+        const previewElement = document.getElementById('reminder-preview');
+        if (!previewElement) return;
+
+        let preview = `<div class="preview-reminder">`;
+        preview += `<div class="preview-title">💰 ${title}</div>`;
+        
+        if (amount && parseFloat(amount) > 0) {
+            preview += `<div class="preview-amount">Amount: $${parseFloat(amount).toFixed(2)}</div>`;
+        }
+        
+        if (dueDate) {
+            const dueDateObj = new Date(dueDate);
+            preview += `<div class="preview-date">Due: ${dueDateObj.toLocaleDateString()}</div>`;
+        }
+        
+        if (frequency) {
+            const frequencyText = {
+                'ONCE': 'One-time',
+                'WEEKLY': 'Weekly',
+                'MONTHLY': 'Monthly',
+                'YEARLY': 'Yearly'
+            };
+            preview += `<div class="preview-frequency">Frequency: ${frequencyText[frequency]}</div>`;
+        }
+        
+        if (advanceDays) {
+            const advanceText = {
+                '0': 'on the due date',
+                '1': '1 day before',
+                '3': '3 days before',
+                '7': '1 week before',
+                '14': '2 weeks before'
+            };
+            preview += `<div class="preview-timing">Reminder: ${advanceText[advanceDays]}</div>`;
+        }
+        
+        preview += `</div>`;
+        previewElement.innerHTML = preview;
+    }
+
+    async handleAddReminder() {
+        const formData = {
+            title: document.getElementById('reminder-title').value.trim(),
+            description: document.getElementById('reminder-description').value.trim(),
+            amount: parseFloat(document.getElementById('reminder-amount').value) || 0,
+            categoryId: parseInt(document.getElementById('reminder-category').value) || null,
+            dueDate: document.getElementById('reminder-due-date').value,
+            frequency: document.getElementById('reminder-frequency').value,
+            advanceDays: parseInt(document.getElementById('reminder-advance-days').value),
+            autoCreateExpense: document.getElementById('reminder-auto-create')?.checked || false,
+            highPriority: document.getElementById('reminder-high-priority')?.checked || false
+        };
+
+        // Enhanced validation
+        const errors = [];
+        
+        if (!formData.title) {
+            errors.push('Reminder title is required');
+        } else if (formData.title.length < 3) {
+            errors.push('Reminder title must be at least 3 characters long');
+        }
+        
+        if (!formData.dueDate) {
+            errors.push('Due date is required');
+        } else {
+            const dueDate = new Date(formData.dueDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (dueDate < today) {
+                errors.push('Due date cannot be in the past');
+            }
+        }
+        
+        if (!formData.frequency) {
+            errors.push('Frequency is required');
+        }
+
+        if (errors.length > 0) {
+            this.ui.showToast(errors.join('. '), 'error');
+            return false;
+        }
+
+        try {
+            // Create a notification for this reminder
+            const priority = formData.highPriority ? 3 : 2;
+            const notificationData = {
+                title: `Payment Reminder: ${formData.title}`,
+                message: `Don't forget: ${formData.title} is due on ${new Date(formData.dueDate).toLocaleDateString()}${formData.amount > 0 ? ` (Amount: $${formData.amount.toFixed(2)})` : ''}`,
+                type: 'RECURRING_BILL_ALERT',
+                channel: 'IN_APP',
+                frequency: formData.frequency,
+                scheduledFor: new Date(formData.dueDate).toISOString(),
+                actionUrl: '/expenses',
+                actionLabel: 'Log Payment',
+                icon: '💰',
+                priority: priority
+            };
+
+            await this.notificationService.createNotification(notificationData);
+            await this.loadNotifications();
+            
+            // Show success message with details
+            const successMessage = `Payment reminder "${formData.title}" created successfully! ` +
+                                  `You'll be reminded ${formData.advanceDays > 0 ? formData.advanceDays + ' days before' : 'on'} ${new Date(formData.dueDate).toLocaleDateString()}.`;
+            
+            this.ui.showToast(successMessage, 'success', 5000);
+            return true;
+        } catch (error) {
+            console.error('Failed to create reminder:', error);
+            this.ui.showToast('Failed to create reminder. Please check your connection and try again.', 'error');
+            return false;
         }
     }
 
@@ -1381,37 +1645,291 @@ class ExpenseTrackerApp {
             return;
         }
 
-        notificationsList.innerHTML = notifications.map(notification => `
-            <div class="notification-item ${notification.isRead ? 'read' : 'unread'} ${this.notificationService.getPriorityClass(notification.priority)}" 
-                 data-id="${notification.id}">
-                <div class="notification-icon">
-                    ${notification.icon || this.notificationService.getNotificationIcon(notification.type)}
+        // Group notifications by type
+        const groupedNotifications = this.groupNotificationsByType(notifications);
+        
+        // Separate read and unread notifications
+        const unreadNotifications = notifications.filter(n => !n.isRead);
+        const readNotifications = notifications.filter(n => n.isRead);
+        
+        // Create tabs and grouped display
+        notificationsList.innerHTML = `
+            <div class="notification-tabs">
+                <button class="tab-button active" data-tab="all">All (${notifications.length})</button>
+                <button class="tab-button" data-tab="unread">Unread (${unreadNotifications.length})</button>
+                <button class="tab-button" data-tab="read">Read (${readNotifications.length})</button>
+                ${Object.keys(groupedNotifications).map(type => `
+                    <button class="tab-button" data-tab="${type}">
+                        ${this.getTypeDisplayName(type)} (${groupedNotifications[type].length})
+                    </button>
+                `).join('')}
+            </div>
+            
+            <div class="notification-controls">
+                <div class="search-container">
+                    <input type="text" id="notification-search" placeholder="Search notifications..." class="search-input">
+                    <span class="search-icon">🔍</span>
                 </div>
-                <div class="notification-content">
-                    <div class="notification-title">${notification.title}</div>
-                    <div class="notification-message">${notification.message}</div>
-                    <div class="notification-meta">
-                        <span class="notification-time">${notification.timeAgo}</span>
-                        <span class="notification-type">${notification.type.replace(/_/g, ' ').toLowerCase()}</span>
-                    </div>
-                </div>
-                <div class="notification-actions">
-                    ${notification.actionUrl ? `
-                        <button class="btn btn-small" onclick="app.handleNotificationAction('${notification.actionUrl}', ${notification.id})">
-                            ${notification.actionLabel || 'View'}
-                        </button>
-                    ` : ''}
-                    ${!notification.isRead ? `
-                        <button class="btn btn-small" onclick="app.markNotificationRead(${notification.id})">
-                            ✓ Mark Read
-                        </button>
-                    ` : ''}
-                    <button class="btn btn-small btn-secondary" onclick="app.deleteNotification(${notification.id})">
-                        🗑️
+                <div class="bulk-actions">
+                    <button class="btn btn-small" onclick="app.markAllNotificationsRead()">
+                        ✓ Mark All Read
+                    </button>
+                    <button class="btn btn-small btn-secondary" onclick="app.clearAllNotifications()">
+                        🗑️ Clear All
                     </button>
                 </div>
             </div>
-        `).join('');
+            
+            <div class="notification-content-area">
+                <div class="tab-content active" data-content="all">
+                    ${this.renderNotificationGroup('All Notifications', notifications)}
+                </div>
+                <div class="tab-content" data-content="unread">
+                    ${this.renderNotificationGroup('Unread Notifications', unreadNotifications)}
+                </div>
+                <div class="tab-content" data-content="read">
+                    ${this.renderNotificationGroup('Read Notifications', readNotifications)}
+                </div>
+                </div>
+                ${Object.entries(groupedNotifications).map(([type, typeNotifications]) => `
+                    <div class="tab-content" data-content="${type}">
+                        ${this.renderNotificationGroup(this.getTypeDisplayName(type), typeNotifications)}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        // Set up tab switching
+        this.setupNotificationTabs();
+        
+        // Set up search functionality
+        this.setupNotificationSearch(notifications);
+    }
+
+    groupNotificationsByType(notifications) {
+        const groups = {
+            'achievements': [],
+            'warnings': [],
+            'summaries': [],
+            'reminders': []
+        };
+
+        notifications.forEach(notification => {
+            const type = notification.type;
+            if (type === 'STREAK_REWARD' || type === 'BADGE_EARNED') {
+                groups.achievements.push(notification);
+            } else if (type === 'BUDGET_THRESHOLD_WARNING' || type === 'BUDGET_EXCEEDED_ALERT' || type === 'OVERDUE_EXPENSE') {
+                groups.warnings.push(notification);
+            } else if (type === 'WEEKLY_SUMMARY' || type === 'MONTHLY_REPORT') {
+                groups.summaries.push(notification);
+            } else if (type === 'DAILY_EXPENSE_REMINDER' || type === 'RECURRING_BILL_ALERT' || type === 'CUSTOM_REMINDER') {
+                groups.reminders.push(notification);
+            } else {
+                // Default to reminders for unknown types
+                groups.reminders.push(notification);
+            }
+        });
+
+        // Remove empty groups
+        Object.keys(groups).forEach(key => {
+            if (groups[key].length === 0) {
+                delete groups[key];
+            }
+        });
+
+        return groups;
+    }
+
+    getTypeDisplayName(type) {
+        const displayNames = {
+            'achievements': '🏆 Achievements',
+            'warnings': '⚠️ Warnings',
+            'summaries': '📊 Summaries',
+            'reminders': '🔔 Reminders'
+        };
+        return displayNames[type] || type;
+    }
+
+    renderNotificationGroup(groupTitle, notifications) {
+        if (notifications.length === 0) {
+            return `<div class="empty-group">No ${groupTitle.toLowerCase()} found</div>`;
+        }
+
+        return `
+            <div class="notification-group">
+                <div class="group-header">
+                    <h4>${groupTitle}</h4>
+                    <span class="group-count">${notifications.length} items</span>
+                </div>
+                <div class="group-notifications">
+                    ${notifications.map(notification => this.renderNotificationCard(notification)).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    renderNotificationCard(notification) {
+        const timeAgo = this.notificationService.formatNotificationTime(notification.createdAt || notification.scheduledFor);
+        const typeClass = this.getNotificationTypeClass(notification.type);
+        
+        return `
+            <div class="notification-card ${notification.isRead ? 'read' : 'unread'} ${typeClass} ${this.notificationService.getPriorityClass(notification.priority)}" 
+                 data-id="${notification.id}" data-type="${notification.type}">
+                <div class="card-header">
+                    <div class="notification-icon">
+                        ${notification.icon || this.notificationService.getNotificationIcon(notification.type)}
+                    </div>
+                    <div class="notification-badge ${typeClass}">
+                        ${this.getTypeBadgeText(notification.type)}
+                    </div>
+                    <div class="notification-time">${timeAgo}</div>
+                </div>
+                
+                <div class="card-body">
+                    <div class="notification-title">${notification.title}</div>
+                    <div class="notification-message">${notification.message}</div>
+                    
+                    ${notification.actionUrl ? `
+                        <div class="notification-action-area">
+                            <button class="action-button primary" onclick="app.handleNotificationAction('${notification.actionUrl}', ${notification.id})">
+                                ${notification.actionLabel || 'View'}
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="card-footer">
+                    <div class="notification-controls">
+                        ${!notification.isRead ? `
+                            <button class="control-btn" onclick="app.markNotificationRead(${notification.id})" title="Mark as read">
+                                ✓
+                            </button>
+                        ` : ''}
+                        <button class="control-btn delete" onclick="app.deleteNotification(${notification.id})" title="Delete">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    getNotificationTypeClass(type) {
+        const typeClasses = {
+            'STREAK_REWARD': 'achievement',
+            'BADGE_EARNED': 'achievement',
+            'BUDGET_THRESHOLD_WARNING': 'warning',
+            'BUDGET_EXCEEDED_ALERT': 'warning',
+            'OVERDUE_EXPENSE': 'warning',
+            'WEEKLY_SUMMARY': 'summary',
+            'MONTHLY_REPORT': 'summary',
+            'DAILY_EXPENSE_REMINDER': 'reminder',
+            'RECURRING_BILL_ALERT': 'reminder',
+            'CUSTOM_REMINDER': 'reminder'
+        };
+        return typeClasses[type] || 'reminder';
+    }
+
+    getTypeBadgeText(type) {
+        const badgeTexts = {
+            'STREAK_REWARD': 'Achievement',
+            'BADGE_EARNED': 'Badge',
+            'BUDGET_THRESHOLD_WARNING': 'Budget Alert',
+            'BUDGET_EXCEEDED_ALERT': 'Budget Alert',
+            'OVERDUE_EXPENSE': 'Overdue',
+            'WEEKLY_SUMMARY': 'Summary',
+            'MONTHLY_REPORT': 'Report',
+            'DAILY_EXPENSE_REMINDER': 'Daily',
+            'RECURRING_BILL_ALERT': 'Bill',
+            'CUSTOM_REMINDER': 'Reminder'
+        };
+        return badgeTexts[type] || 'Notification';
+    }
+
+    setupNotificationTabs() {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+                
+                // Update active tab button
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Update active tab content
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.dataset.content === tabName) {
+                        content.classList.add('active');
+                    }
+                });
+            });
+        });
+    }
+
+    setupNotificationSearch(notifications) {
+        const searchInput = document.getElementById('notification-search');
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            this.filterNotifications(notifications, searchTerm);
+        });
+    }
+
+    filterNotifications(notifications, searchTerm) {
+        const notificationCards = document.querySelectorAll('.notification-card');
+        
+        notificationCards.forEach(card => {
+            const title = card.querySelector('.notification-title').textContent.toLowerCase();
+            const message = card.querySelector('.notification-message').textContent.toLowerCase();
+            const type = card.dataset.type.toLowerCase();
+            
+            const matches = title.includes(searchTerm) || 
+                          message.includes(searchTerm) || 
+                          type.includes(searchTerm);
+            
+            card.style.display = matches ? 'block' : 'none';
+        });
+        
+        // Update group counts
+        this.updateGroupCounts();
+    }
+
+    updateGroupCounts() {
+        const groups = document.querySelectorAll('.notification-group');
+        groups.forEach(group => {
+            const visibleCards = group.querySelectorAll('.notification-card:not([style*="display: none"])');
+            const countElement = group.querySelector('.group-count');
+            if (countElement) {
+                countElement.textContent = `${visibleCards.length} items`;
+            }
+        });
+    }
+
+    async clearAllNotifications() {
+        if (!confirm('Are you sure you want to clear all notifications? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            // Get all notification IDs
+            const notifications = await this.notificationService.getAllNotifications();
+            
+            // Delete all notifications
+            const deletePromises = notifications.map(notification => 
+                this.notificationService.deleteNotification(notification.id)
+            );
+            
+            await Promise.all(deletePromises);
+            await this.loadNotifications(); // Refresh the list
+            this.ui.showToast('All notifications cleared', 'success');
+        } catch (error) {
+            console.error('Failed to clear all notifications:', error);
+            this.ui.showToast('Failed to clear all notifications', 'error');
+        }
     }
 
     updateUnreadCount(count) {
@@ -1481,21 +1999,87 @@ class ExpenseTrackerApp {
 
     // Quick notification creation methods
     async createDailyReminder() {
-        try {
-            await this.notificationService.createDailyReminder();
-            await this.loadNotifications();
-            this.ui.showToast('Daily reminder created!', 'success');
-        } catch (error) {
-            console.error('Failed to create daily reminder:', error);
-            this.ui.showToast('Failed to create daily reminder', 'error');
-        }
+        // Show explanation modal first
+        const modalContent = `
+            <div class="daily-reminder-info">
+                <div class="info-header">
+                    <h3>📝 Daily Expense Reminder</h3>
+                    <p>This creates a one-time reminder notification to help you remember to log today's expenses.</p>
+                </div>
+                
+                <div class="info-content">
+                    <div class="feature-list">
+                        <div class="feature-item">
+                            <span class="feature-icon">🔔</span>
+                            <div class="feature-text">
+                                <strong>Instant Reminder</strong>
+                                <small>Creates a notification in your notification center</small>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">📱</span>
+                            <div class="feature-text">
+                                <strong>Quick Access</strong>
+                                <small>Includes a direct link to add expenses</small>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">⏰</span>
+                            <div class="feature-text">
+                                <strong>One-Time Only</strong>
+                                <small>This is not a recurring reminder - use Settings for automatic daily reminders</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> For automatic daily reminders, go to Settings → Notification Settings and enable "Daily expense reminders" with your preferred time.
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.ui.showModal('Daily Expense Reminder', modalContent, {
+            onConfirm: async () => {
+                try {
+                    await this.notificationService.createDailyReminder();
+                    await this.loadNotifications();
+                    this.ui.showToast('Daily reminder created! Check your notifications.', 'success');
+                } catch (error) {
+                    console.error('Failed to create daily reminder:', error);
+                    this.ui.showToast('Failed to create daily reminder', 'error');
+                }
+            },
+            confirmText: '✅ Create Reminder',
+            cancelText: '❌ Cancel'
+        });
     }
 
     async createWeeklySummary() {
         try {
-            // Calculate some sample data
-            const totalSpent = this.expenses.reduce((sum, expense) => sum + expense.amount, 0);
-            const topCategory = 'Food & Dining'; // Simplified for demo
+            // Calculate weekly data (last 7 days)
+            const now = new Date();
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            // Filter expenses from the last 7 days
+            const weeklyExpenses = this.expenses.filter(expense => {
+                const expenseDate = new Date(expense.date);
+                return expenseDate >= weekAgo && expenseDate <= now;
+            });
+            
+            const totalSpent = weeklyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+            
+            // Calculate top category from weekly expenses
+            const categoryTotals = {};
+            weeklyExpenses.forEach(expense => {
+                const categoryName = expense.category?.name || 
+                                   this.categories.find(c => c.id === expense.categoryId)?.name || 
+                                   'Unknown';
+                categoryTotals[categoryName] = (categoryTotals[categoryName] || 0) + expense.amount;
+            });
+            
+            const topCategory = Object.entries(categoryTotals)
+                .sort(([,a], [,b]) => b - a)[0]?.[0] || 'No expenses';
             
             await this.notificationService.createWeeklySummary(totalSpent, topCategory);
             await this.loadNotifications();
@@ -1506,38 +2090,36 @@ class ExpenseTrackerApp {
         }
     }
 
-    async testBudgetAlert() {
-        try {
-            // Create a test budget alert
-            await this.notificationService.createBudgetAlert(85, 850, 1000);
-            await this.loadNotifications();
-            this.ui.showToast('Budget alert created!', 'success');
-        } catch (error) {
-            console.error('Failed to create budget alert:', error);
-            this.ui.showToast('Failed to create budget alert', 'error');
-        }
-    }
 
-    async createStreakReward() {
-        try {
-            // Create a test streak reward
-            const days = Math.floor(Math.random() * 30) + 1; // Random 1-30 days
-            await this.notificationService.createStreakReward(days);
-            await this.loadNotifications();
-            this.ui.showToast('Streak reward created!', 'success');
-        } catch (error) {
-            console.error('Failed to create streak reward:', error);
-            this.ui.showToast('Failed to create streak reward', 'error');
-        }
-    }
 
     async showNotificationSettings() {
         try {
+            // Show loading state
+            this.ui.showToast('Loading notification settings...', 'info');
+            
             const settings = await this.notificationService.getSettings();
             this.displayNotificationSettingsModal(settings);
         } catch (error) {
             console.error('Failed to load notification settings:', error);
-            this.ui.showToast('Failed to load notification settings', 'error');
+            
+            // Show error modal with option to use defaults
+            const errorModalContent = `
+                <div class="error-content">
+                    <div class="error-icon">⚠️</div>
+                    <h3>Failed to Load Settings</h3>
+                    <p>Unable to load your notification settings from the server.</p>
+                    <p>You can still configure settings using default values.</p>
+                </div>
+            `;
+            
+            this.ui.showModal('Settings Error', errorModalContent, {
+                onConfirm: () => {
+                    // Show settings modal with default values
+                    this.displayNotificationSettingsModal(null);
+                },
+                confirmText: 'Use Defaults',
+                cancelText: 'Cancel'
+            });
         }
     }
 
@@ -1641,27 +2223,81 @@ class ExpenseTrackerApp {
 
     async saveNotificationSettings() {
         try {
+            // Validate email if email notifications are enabled
+            const enableEmail = document.getElementById('enableEmailNotifications').checked;
+            const emailAddress = document.getElementById('emailAddress').value.trim();
+            
+            if (enableEmail && !emailAddress) {
+                this.ui.showToast('Please enter an email address to enable email notifications', 'warning');
+                return false; // Don't close modal
+            }
+            
+            if (enableEmail && !this.isValidEmail(emailAddress)) {
+                this.ui.showToast('Please enter a valid email address', 'warning');
+                return false; // Don't close modal
+            }
+            
+            // Validate time inputs
+            const dailyTime = document.getElementById('dailyReminderTime').value;
+            const weeklyTime = document.getElementById('weeklySummaryTime').value;
+            const quietStart = document.getElementById('quietHoursStart').value;
+            const quietEnd = document.getElementById('quietHoursEnd').value;
+            
+            if (!dailyTime || !weeklyTime || !quietStart || !quietEnd) {
+                this.ui.showToast('Please fill in all time fields', 'warning');
+                return false;
+            }
+            
+            // Show saving state
+            this.ui.showToast('Saving notification settings...', 'info');
+            
             const settingsData = {
                 enableDailyReminder: document.getElementById('enableDailyReminder').checked,
-                dailyReminderTime: document.getElementById('dailyReminderTime').value,
+                dailyReminderTime: dailyTime,
                 enableBudgetAlerts: document.getElementById('enableBudgetAlerts').checked,
                 budgetWarningThreshold: parseInt(document.getElementById('budgetWarningThreshold').value),
                 enableWeeklySummary: document.getElementById('enableWeeklySummary').checked,
-                weeklySummaryTime: document.getElementById('weeklySummaryTime').value,
+                weeklySummaryTime: weeklyTime,
                 enableStreakRewards: document.getElementById('enableStreakRewards').checked,
                 enableBadges: document.getElementById('enableBadges').checked,
-                quietHoursStart: document.getElementById('quietHoursStart').value,
-                quietHoursEnd: document.getElementById('quietHoursEnd').value,
-                enableEmailNotifications: document.getElementById('enableEmailNotifications').checked,
-                emailAddress: document.getElementById('emailAddress').value
+                quietHoursStart: quietStart,
+                quietHoursEnd: quietEnd,
+                enableEmailNotifications: enableEmail,
+                emailAddress: emailAddress
             };
 
-            await this.notificationService.updateSettings(settingsData);
-            this.ui.showToast('Notification settings saved!', 'success');
+            const savedSettings = await this.notificationService.updateSettings(settingsData);
+            
+            if (savedSettings) {
+                this.ui.showToast('Notification settings saved successfully!', 'success');
+                
+                // Show confirmation of what was enabled
+                const enabledFeatures = [];
+                if (settingsData.enableDailyReminder) enabledFeatures.push('Daily reminders');
+                if (settingsData.enableBudgetAlerts) enabledFeatures.push('Budget alerts');
+                if (settingsData.enableWeeklySummary) enabledFeatures.push('Weekly summaries');
+                if (settingsData.enableEmailNotifications) enabledFeatures.push('Email notifications');
+                
+                if (enabledFeatures.length > 0) {
+                    setTimeout(() => {
+                        this.ui.showToast(`Enabled: ${enabledFeatures.join(', ')}`, 'info', 4000);
+                    }, 1000);
+                }
+                
+                return true; // Close modal
+            } else {
+                throw new Error('Settings were not saved properly');
+            }
         } catch (error) {
             console.error('Failed to save notification settings:', error);
-            this.ui.showToast('Failed to save notification settings', 'error');
+            this.ui.showToast('Failed to save notification settings. Please try again.', 'error');
+            return false; // Don't close modal
         }
+    }
+    
+    isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
     }
 
     // Override displayRecentExpenses to do nothing since we removed that section

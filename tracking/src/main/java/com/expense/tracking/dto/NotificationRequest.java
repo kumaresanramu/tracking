@@ -1,17 +1,22 @@
 package com.expense.tracking.dto;
 
-import com.expense.tracking.entity.NotificationType;
+import java.time.LocalDateTime;
+
 import com.expense.tracking.entity.NotificationChannel;
-import lombok.Data;
-import lombok.Builder;
+import com.expense.tracking.entity.NotificationType;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class NotificationRequest {
     
     @NotBlank(message = "Title is required")
@@ -39,5 +44,6 @@ public class NotificationRequest {
     @Size(max = 50, message = "Icon must not exceed 50 characters")
     private String icon;
     
+    @Builder.Default
     private Integer priority = 1;
 }
