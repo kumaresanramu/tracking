@@ -2153,6 +2153,24 @@ class ExpenseTrackerApp {
         }
     }
 
+    async createDailyReminder() {
+        try {
+            const response = await fetch('/api/notifications/daily-reminder', {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                await this.loadNotifications();
+                this.ui.showToast('Daily expense reminder created!', 'success');
+            } else {
+                throw new Error('Failed to create daily reminder');
+            }
+        } catch (error) {
+            console.error('Failed to create daily reminder:', error);
+            this.ui.showToast('Failed to create daily reminder', 'error');
+        }
+    }
+
 
 
     async showNotificationSettings() {

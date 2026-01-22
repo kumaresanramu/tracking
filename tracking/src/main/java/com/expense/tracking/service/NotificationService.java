@@ -1,9 +1,11 @@
 package com.expense.tracking.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.expense.tracking.dto.NotificationRequest;
 import com.expense.tracking.dto.NotificationResponse;
+import com.expense.tracking.entity.Expense;
 import com.expense.tracking.entity.Notification;
 import com.expense.tracking.entity.NotificationChannel;
 import com.expense.tracking.entity.NotificationType;
@@ -252,9 +255,9 @@ public class NotificationService {
         LocalDate startOfMonth = now.withDayOfMonth(1);
         LocalDate endOfMonth = now.withDayOfMonth(now.lengthOfMonth());
         
-        List<Expense> monthlyExpenses = expenseRepository.findByDateBetween(startOfMonth, endOfMonth);
+        List<Expense> monthlyExpenses = expenseRepository.findByDateBetweenOrderByDateDesc(startOfMonth, endOfMonth);
         double totalSpent = monthlyExpenses.stream()
-                .mapToDouble(Expense::getAmount)
+                .mapToDouble(expense -> expense.getAmount().doubleValue())
                 .sum();
         
         double percentage = monthlyBudget > 0 ? (totalSpent / monthlyBudget) * 100 : 0;
@@ -281,7 +284,7 @@ public class NotificationService {
         LocalDate now = LocalDate.now();
         LocalDate startOfMonth = now.withDayOfMonth(1);
         
-        List<Expense> monthlyExpenses = expenseRepository.findByDateBetween(startOfMonth, now);
+        List<Expense> monthlyExpenses = expenseRepository.findByDateBetweenOrderByDateDesc(startOfMonth, now);
         
         // Count unique days with expenses
         long uniqueDays = monthlyExpenses.stream()
@@ -308,10 +311,10 @@ public class NotificationService {
         LocalDate now = LocalDate.now();
         LocalDate weekAgo = now.minusDays(7);
         
-        List<Expense> weeklyExpenses = expenseRepository.findByDateBetween(weekAgo, now);
+        List<Expense> weeklyExpenses = expenseRepository.findByDateBetweenOrderByDateDesc(weekAgo, now);
         
         double totalSpent = weeklyExpenses.stream()
-                .mapToDouble(Expense::getAmount)
+                .mapToDouble(expense -> expense.getAmount().doubleValue())
                 .sum();
         
         // Find top category
@@ -319,7 +322,7 @@ public class NotificationService {
                 .filter(expense -> expense.getCategory() != null)
                 .collect(Collectors.groupingBy(
                     expense -> expense.getCategory().getName(),
-                    Collectors.summingDouble(Expense::getAmount)
+                    Collectors.summingDouble(expense -> expense.getAmount().doubleValue())
                 ));
         
         String topCategory = categoryTotals.entrySet().stream()
