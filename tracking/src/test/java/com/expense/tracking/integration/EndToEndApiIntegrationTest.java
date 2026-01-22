@@ -6,7 +6,6 @@ import com.expense.tracking.entity.ReminderFrequency;
 import com.expense.tracking.repository.CategoryRepository;
 import com.expense.tracking.repository.ExpenseRepository;
 import com.expense.tracking.repository.PaymentReminderRepository;
-import com.expense.tracking.repository.SyncOperationRepository;
 import com.expense.tracking.service.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,9 +39,6 @@ public class EndToEndApiIntegrationTest {
     private AnalyticsService analyticsService;
 
     @Autowired
-    private SyncService syncService;
-
-    @Autowired
     private ExpenseRepository expenseRepository;
 
     @Autowired
@@ -51,15 +47,11 @@ public class EndToEndApiIntegrationTest {
     @Autowired
     private PaymentReminderRepository paymentReminderRepository;
 
-    @Autowired
-    private SyncOperationRepository syncOperationRepository;
-
     private Category testCategory;
 
     @BeforeEach
     void setUp() {
         // Clean up any existing data
-        syncOperationRepository.deleteAll();
         paymentReminderRepository.deleteAll();
         expenseRepository.deleteAll();
         categoryRepository.deleteAll();
@@ -225,21 +217,6 @@ public class EndToEndApiIntegrationTest {
         
         Long expenseCount = (Long) summary.get("expenseCount");
         assertThat(expenseCount).isEqualTo(2L);
-    }
-
-    @Test
-    void testSyncServiceWorkflow() {
-        // Test 1: Get sync status
-        SyncStatusInfo status = syncService.getSyncStatus();
-        
-        assertThat(status).isNotNull();
-        assertThat(status.getPendingOperations()).isNotNull();
-        assertThat(status.getInProgressOperations()).isNotNull();
-        assertThat(status.getFailedOperations()).isNotNull();
-
-        // Test 2: Trigger manual sync (should complete without errors)
-        var syncFuture = syncService.syncPendingChanges();
-        assertThat(syncFuture).isNotNull();
     }
 
     @Test

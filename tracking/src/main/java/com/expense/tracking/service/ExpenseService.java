@@ -5,8 +5,6 @@ import com.expense.tracking.dto.ExpenseRequest;
 import com.expense.tracking.dto.ExpenseResponse;
 import com.expense.tracking.entity.Category;
 import com.expense.tracking.entity.Expense;
-import com.expense.tracking.entity.SyncOperationType;
-import com.expense.tracking.exception.GoogleSheetsException;
 import com.expense.tracking.exception.ResourceNotFoundException;
 import com.expense.tracking.exception.ValidationException;
 import com.expense.tracking.repository.CategoryRepository;
@@ -30,8 +28,6 @@ public class ExpenseService {
     
     private final ExpenseRepository expenseRepository;
     private final CategoryRepository categoryRepository;
-    private final GoogleSheetsService googleSheetsService;
-    private final SyncService syncService;
     
     public ExpenseResponse createExpense(ExpenseRequest request) {
         log.debug("Creating expense with amount: {} and date: {}", request.getAmount(), request.getDate());
@@ -49,15 +45,11 @@ public class ExpenseService {
                 .date(request.getDate())
                 .category(category)
                 .description(request.getDescription())
-                .synced(false) // Will be synced later
                 .build();
         
         // Save expense
         Expense savedExpense = expenseRepository.save(expense);
         log.info("Created expense with id: {}", savedExpense.getId());
-        
-        // Queue for sync to Google Sheets
-        queueExpenseForSync(savedExpense, SyncOperationType.CREATE);
         
         return mapToResponse(savedExpense);
     }
@@ -96,13 +88,9 @@ public class ExpenseService {
         expense.setDate(request.getDate());
         expense.setCategory(category);
         expense.setDescription(request.getDescription());
-        expense.setSynced(false); // Mark as unsynced after update
         
         Expense updatedExpense = expenseRepository.save(expense);
         log.info("Updated expense with id: {}", updatedExpense.getId());
-        
-        // Queue updated expense for sync to Google Sheets
-        queueExpenseForSync(updatedExpense, SyncOperationType.UPDATE);
         
         return mapToResponse(updatedExpense);
     }
@@ -115,9 +103,6 @@ public class ExpenseService {
         
         expenseRepository.deleteById(id);
         log.info("Deleted expense with id: {}", id);
-        
-        // Queue for deletion sync to Google Sheets
-        syncService.queueForSync(SyncOperationType.DELETE, id, "Expense", expense);
     }
     
     private void validateExpenseRequest(ExpenseRequest request) {
@@ -172,44 +157,13 @@ public class ExpenseService {
                 .description(expense.getDescription())
                 .createdAt(expense.getCreatedAt())
                 .updatedAt(expense.getUpdatedAt())
-                .synced(expense.getSynced())
                 .build();
-    }
-    
-    @Async
-    private void syncExpenseToGoogleSheets(Expense expense) {
-        try {
-            if (googleSheetsService.isConnected()) {
-                googleSheetsService.syncExpenseToSheet(expense);
-                
-                // Mark as synced
-                expense.setSynced(true);
-                expenseRepository.save(expense);
-                
-                log.info("Successfully synced expense {} to Google Sheets", expense.getId());
-            } else {
-                log.warn("Google Sheets not connected, expense {} will remain unsynced", expense.getId());
-            }
-        } catch (Exception e) {
-            log.error("Failed to sync expense {} to Google Sheets: {}", expense.getId(), e.getMessage());
-            // Don't throw exception to avoid breaking the main flow
-            // The expense will remain marked as unsynced for later retry
-        }
-    }
-    
-    private void queueExpenseForSync(Expense expense, SyncOperationType operationType) {
-        try {
-            syncService.queueForSync(operationType, expense.getId(), "Expense", expense);
-            log.debug("Queued expense {} for {} sync", expense.getId(), operationType);
-        } catch (Exception e) {
-            log.error("Failed to queue expense {} for sync: {}", expense.getId(), e.getMessage());
-        }
     }
     
     public List<ExpenseResponse> batchCreateExpenses(List<ExpenseRequest> requests) {
         log.debug("Batch creating {} expenses", requests.size());
         
-        if (requests == null || requests.isEmpty()) {
+        if (requests.isEmpty()) {
             throw new ValidationException("Request list cannot be empty");
         }
         
@@ -228,7 +182,7 @@ public class ExpenseService {
     public List<ExpenseResponse> batchUpdateExpenses(List<ExpenseRequest> requests) {
         log.debug("Batch updating {} expenses", requests.size());
         
-        if (requests == null || requests.isEmpty()) {
+        if (requests.isEmpty()) {
             throw new ValidationException("Request list cannot be empty");
         }
         

@@ -125,30 +125,7 @@ body {
     font-weight: 600;
 }
 
-.sync-status {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    flex-shrink: 0;
-}
-
-.sync-indicator {
-    font-size: 1rem;
-}
-
-.sync-indicator.online {
-    color: #4CAF50;
-}
-
-.sync-indicator.offline {
-    color: #FF9800;
-}
-
-.sync-indicator.syncing {
-    color: #2196F3;
-    animation: pulse 1s infinite;
-}
+/* Removed sync status styles - local-only operation */
 
 @keyframes pulse {
     0%, 100% { opacity: 1; }
@@ -351,7 +328,8 @@ body {
 }
 
 .form-group input,
-.form-group select {
+.form-group select,
+.form-group textarea {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid #ddd;
@@ -361,10 +339,18 @@ body {
 }
 
 .form-group input:focus,
-.form-group select:focus {
+.form-group select:focus,
+.form-group textarea:focus {
     outline: none;
     border-color: #2196F3;
     box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+.form-group small {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: #666;
 }
 
 .form-group input.error,
@@ -596,9 +582,7 @@ body {
         padding: 0 1rem;
     }
     
-    .sync-status span {
-        display: none; /* Hide text, keep icon */
-    }
+    /* Removed sync status mobile styles - local-only operation */
 }
 
 /* Small Mobile (480px and down) */
@@ -853,4 +837,133 @@ body {
     .expense-list-container {
         padding: 2rem;
     }
+}
+/* Dark Theme */
+[data-theme="dark"] {
+    --bg-color: #1a1a1a;
+    --surface-color: #2d2d2d;
+    --text-color: #e0e0e0;
+    --text-secondary: #b0b0b0;
+    --border-color: #404040;
+    --primary-color: #4fc3f7;
+    --primary-hover: #29b6f6;
+    --success-color: #66bb6a;
+    --error-color: #ef5350;
+    --warning-color: #ffca28;
+}
+
+[data-theme="dark"] body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .navbar {
+    background-color: #1e1e1e;
+    border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .main-content {
+    background-color: var(--bg-color);
+}
+
+[data-theme="dark"] .page {
+    background-color: var(--bg-color);
+}
+
+[data-theme="dark"] .expense-item,
+[data-theme="dark"] .summary-card,
+[data-theme="dark"] .chart-section,
+[data-theme="dark"] .settings-section {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .expense-item:hover {
+    background-color: #3a3a3a;
+}
+
+[data-theme="dark"] .expense-meta {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select,
+[data-theme="dark"] .month-selector {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .form-group input:focus,
+[data-theme="dark"] .form-group select:focus,
+[data-theme="dark"] .month-selector:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.2);
+}
+
+[data-theme="dark"] .btn {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #000;
+}
+
+[data-theme="dark"] .btn-primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+}
+
+[data-theme="dark"] .nav-item {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .nav-item:hover,
+[data-theme="dark"] .nav-item.active {
+    background-color: rgba(79, 195, 247, 0.1);
+    color: var(--primary-color);
+}
+
+[data-theme="dark"] .empty-state {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .analytics-status {
+    background-color: var(--surface-color) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-color) !important;
+}
+
+[data-theme="dark"] .analytics-status p {
+    color: var(--text-color) !important;
+}
+
+/* Dark theme for form validation */
+[data-theme="dark"] .form-group.error input,
+[data-theme="dark"] .form-group.error select {
+    border-color: var(--error-color);
+}
+
+/* Dark theme for toast notifications */
+[data-theme="dark"] .toast {
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .toast.success {
+    border-left-color: var(--success-color);
+}
+
+[data-theme="dark"] .toast.error {
+    border-left-color: var(--error-color);
+}
+
+[data-theme="dark"] .toast.warning {
+    border-left-color: var(--warning-color);
 }

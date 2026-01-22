@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Expense Tracking System is a Progressive Web Application (PWA) built with a Spring Boot backend and modern web frontend. The system provides comprehensive expense management with Google Sheets integration, hierarchical categorization, payment reminders, and visual analytics. The architecture follows a client-server model with offline-first PWA capabilities and real-time data synchronization.
+The Expense Tracking System is a Progressive Web Application (PWA) built with a Spring Boot backend and modern web frontend. The system provides comprehensive expense management with local database storage, hierarchical categorization, payment reminders, and visual analytics. The architecture follows a client-server model with PWA capabilities and local data persistence.
 
 ## Architecture
 
@@ -18,21 +18,12 @@ graph TB
     
     subgraph "Server Layer"
         API[Spring Boot API]
-        AUTH[Authentication Service]
-        SYNC[Sync Service]
-    end
-    
-    subgraph "External Services"
-        GSHEETS[Google Sheets API]
-        GAUTH[Google OAuth]
+        DB[H2 Database]
     end
     
     PWA --> API
     SW --> IDB
-    API --> AUTH
-    API --> SYNC
-    SYNC --> GSHEETS
-    AUTH --> GAUTH
+    API --> DB
 ```
 
 ### Technology Stack
@@ -40,9 +31,8 @@ graph TB
 **Backend:**
 - Spring Boot 3.x with Java 17+
 - Spring Web (REST API)
-- Spring Security (Authentication)
-- Google Sheets API v4
-- H2 Database (for local caching and offline queue)
+- Spring Data JPA (Database operations)
+- H2 Database (for development and local storage)
 
 **Frontend:**
 - Vanilla JavaScript ES6+ or React (lightweight PWA)
@@ -78,34 +68,7 @@ public class ExpenseController {
 }
 ```
 
-#### 2. Google Sheets Service
-```java
-@Service
-public class GoogleSheetsService {
-    
-    public void syncExpenseToSheet(Expense expense);
-    public List<Expense> getExpensesFromSheet(int year, int month);
-    public void createMonthlySheet(int year, int month);
-    public void updateExpenseInSheet(Expense expense);
-    public boolean isConnected();
-}
-```
-
-#### 3. Sync Service
-```java
-@Service
-public class SyncService {
-    
-    @Async
-    public CompletableFuture<Void> syncPendingChanges();
-    
-    public void queueForSync(SyncOperation operation);
-    public SyncStatus getSyncStatus();
-    public void handleSyncConflict(Expense local, Expense remote);
-}
-```
-
-#### 4. Payment Reminder Service
+#### 2. Payment Reminder Service
 ```java
 @Service
 public class PaymentReminderService {
@@ -166,15 +129,13 @@ class AnalyticsDashboard {
 #### 3. Service Worker
 ```javascript
 // sw.js
-self.addEventListener('sync', event => {
-    if (event.tag === 'expense-sync') {
-        event.waitUntil(syncPendingExpenses());
-    }
-});
-
 self.addEventListener('fetch', event => {
     // Cache-first strategy for app shell
     // Network-first for API calls with fallback
+});
+
+self.addEventListener('install', event => {
+    // Cache essential resources
 });
 ```
 
@@ -203,7 +164,6 @@ public class Expense {
     private String description;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private boolean synced;
     
     // Getters, setters, constructors
 }
@@ -293,16 +253,39 @@ public class ReminderPreferences {
 }
 ```
 
-### Google Sheets Schema
+### Database Schema
 
-Each month will have a dedicated sheet with the following columns:
-- Date (YYYY-MM-DD)
-- Amount (Decimal)
-- Category (String)
-- Subcategory (String, optional)
-- Description (String)
-- Created At (Timestamp)
-- Updated At (Timestamp)
+The H2 database will store all data locally with the following main tables:
+
+**Expenses Table:**
+- id (Primary Key)
+- amount (Decimal)
+- date (Date)
+- category_id (Foreign Key)
+- description (String)
+- created_at (Timestamp)
+- updated_at (Timestamp)
+
+**Categories Table:**
+- id (Primary Key)
+- name (String, unique)
+- parent_id (Foreign Key, self-reference)
+- color (String)
+
+**Payment Reminders Table:**
+- id (Primary Key)
+- name (String)
+- amount (Decimal)
+- due_date (Date)
+- frequency (Enum)
+- category_id (Foreign Key)
+- active (Boolean)
+- last_paid (Date)
+- days_before (Integer)
+- preferred_notification_time (Time)
+- enable_email_notification (Boolean)
+- enable_push_notification (Boolean)
+- custom_message (String)
 
 ## Error Handling
 
@@ -311,9 +294,9 @@ Each month will have a dedicated sheet with the following columns:
 @ControllerAdvice
 public class GlobalExceptionHandler {
     
-    @ExceptionHandler(GoogleSheetsException.class)
-    public ResponseEntity<ErrorResponse> handleGoogleSheetsError(GoogleSheetsException e) {
-        // Queue operation for retry
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityError(DataIntegrityViolationException e) {
+        // Handle database constraint violations
         // Return appropriate error response
     }
     
@@ -329,8 +312,8 @@ public class GlobalExceptionHandler {
 class ErrorHandler {
     static async handleApiError(error) {
         if (error.status === 0) {
-            // Network error - queue for offline sync
-            await OfflineQueue.add(error.request);
+            // Network error - show offline message
+            NotificationService.showOfflineMessage();
         } else if (error.status >= 500) {
             // Server error - show retry option
             NotificationService.showRetryableError(error.message);
@@ -370,84 +353,64 @@ Property-based tests will validate universal properties using JUnit 5 with jqwik
 *For any* set of expenses across different months, viewing expenses should group them correctly by month with proper category hierarchy maintained within each month.
 **Validates: Requirements 1.3**
 
-### Property 4: Google Sheets Sync Timing
-*For any* newly created expense, the sync operation to Google Sheets should complete within 5 seconds under normal network conditions.
+### Property 4: Local Data Persistence
+*For any* newly created expense, the data should be immediately stored in the local database and retrievable.
 **Validates: Requirements 2.2**
 
-### Property 5: Expense Modification Sync
-*For any* expense modification, the corresponding Google Sheets entry should reflect the same changes immediately after sync completion.
+### Property 5: Data Modification Persistence
+*For any* expense modification, the corresponding database entry should reflect the same changes immediately after the update operation.
 **Validates: Requirements 2.3**
 
-### Property 6: Offline Queue Behavior
-*For any* expense operation performed while offline, the operation should be queued locally and executed when connectivity is restored.
-**Validates: Requirements 2.4**
-
-### Property 7: Monthly Sheet Organization
-*For any* expense with a specific date, it should be stored in the Google Sheets tab corresponding to that month and year.
-**Validates: Requirements 2.5**
-
-### Property 8: Reminder Scheduling
+### Property 6: Reminder Scheduling
 *For any* recurring expense setup, the system should create reminder entries with the correct frequency and due dates.
 **Validates: Requirements 3.1**
 
-### Property 9: Notification Timing
+### Property 7: Notification Timing
 *For any* payment reminder with a due date, a notification should be triggered exactly 3 days before the due date.
 **Validates: Requirements 3.2**
 
-### Property 10: Reminder Content Completeness
+### Property 8: Reminder Content Completeness
 *For any* triggered reminder, the notification should contain the expense name, amount, and due date.
 **Validates: Requirements 3.3**
 
-### Property 11: Reminder to Expense Conversion
+### Property 9: Reminder to Expense Conversion
 *For any* reminder marked as paid, a corresponding expense record should be created with matching details.
 **Validates: Requirements 3.4**
 
-### Property 12: Offline Functionality
-*For any* expense creation or viewing operation, the PWA should function correctly when network connectivity is unavailable.
+### Property 10: PWA Functionality
+*For any* expense creation or viewing operation, the PWA should function correctly with local data storage.
 **Validates: Requirements 4.2**
 
-### Property 13: Automatic Sync on Reconnection
-*For any* offline changes, when internet connectivity is restored, all pending changes should automatically sync to Google Sheets.
-**Validates: Requirements 4.3**
+### Property 11: Data Caching
+*For any* essential application data, it should be cached locally and available for fast access.
+**Validates: Requirements 4.4**
 
-### Property 14: Data Caching
-*For any* essential application data, it should be cached locally and available for offline viewing.
-**Validates: Requirements 4.5**
-
-### Property 15: Monthly Trend Visualization
+### Property 12: Monthly Trend Visualization
 *For any* set of expenses across multiple months, the analytics page should display accurate monthly trend data.
 **Validates: Requirements 5.1**
 
-### Property 16: Category Breakdown Accuracy
+### Property 13: Category Breakdown Accuracy
 *For any* selected month with expenses, the category-wise breakdown should show correct totals for each category.
 **Validates: Requirements 5.2**
 
-### Property 17: Hierarchical Category Totals
+### Property 14: Hierarchical Category Totals
 *For any* hierarchical category structure, parent category totals should equal the sum of all subcategory amounts.
 **Validates: Requirements 6.5**
 
-### Property 18: API CRUD Completeness
+### Property 15: API CRUD Completeness
 *For any* expense entity, all CRUD operations (create, read, update, delete) should be available through RESTful endpoints.
 **Validates: Requirements 7.1**
 
-### Property 19: Input Validation
+### Property 16: Input Validation
 *For any* incoming expense data, invalid data should be rejected with appropriate error messages, while valid data should be processed successfully.
 **Validates: Requirements 7.4**
 
-### Property 20: Connectivity-Based Sync
-*For any* change in internet connectivity status, the system should automatically trigger sync operations when connectivity is detected.
-**Validates: Requirements 9.1**
-
-### Property 21: Conflict Resolution by Timestamp
-*For any* sync conflict between local and remote data, the entry with the most recent timestamp should take precedence.
+### Property 17: Data Integrity
+*For any* database operation, data integrity constraints should be maintained and violations should be handled gracefully.
 **Validates: Requirements 9.2**
 
-### Property 22: Exponential Backoff Retry
-*For any* failed sync operation, the system should retry up to 5 times with exponential backoff intervals.
-**Validates: Requirements 9.3**
-
-### Property 23: Sync Status Display
-*For any* ongoing sync operation, the user interface should display the current sync status.
+### Property 18: Performance Consistency
+*For any* expense operation, the system should maintain responsive performance even with large datasets.
 **Validates: Requirements 9.5**
 
 ## Testing Strategy
@@ -465,16 +428,16 @@ The system will use both unit tests and property-based tests to ensure comprehen
 - **Tagging**: Each test tagged with format: **Feature: expense-tracking, Property {number}: {property_text}**
 
 ### Unit Testing Focus Areas
-- Google Sheets API integration points
-- Authentication and authorization flows
-- Error handling and edge cases
+- Database operations and data persistence
+- Input validation and error handling
+- Payment reminder scheduling logic
 - PWA service worker functionality
 - Specific UI component behaviors
 
 ### Integration Testing
-- End-to-end expense creation and sync workflows
-- Offline-to-online transition scenarios
+- End-to-end expense creation and storage workflows
+- Payment reminder workflow testing
 - Cross-browser PWA functionality
-- Google Sheets API rate limiting and error handling
+- Database integrity and constraint testing
 
 The testing strategy ensures both functional correctness through property-based testing and practical reliability through comprehensive unit and integration tests.

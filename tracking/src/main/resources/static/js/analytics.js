@@ -4,34 +4,137 @@ class Analytics {
         this.monthlyTrendsChart = null;
         this.categoryBreakdownChart = null;
         this.expenseService = new ExpenseService();
+        this.selectedYear = new Date().getFullYear();
+        this.selectedMonth = new Date().getMonth() + 1;
     }
 
     async loadCharts() {
+        console.log('Analytics: Starting to load charts...');
+        
+        // Initialize month selector
+        this.initializeMonthSelector();
+        
+        // Clear any existing status messages and add loading message
+        const analyticsContainer = document.querySelector('.analytics-container');
+        let statusDiv = null;
+        
+        if (analyticsContainer) {
+            // Remove any existing status messages
+            const existingStatusDivs = analyticsContainer.querySelectorAll('.analytics-status');
+            existingStatusDivs.forEach(div => div.remove());
+            
+            // Add new loading message right after the h2 title
+            statusDiv = document.createElement('div');
+            statusDiv.className = 'analytics-status';
+            statusDiv.style.cssText = `
+                background: #e8f5e8;
+                border: 1px solid #4caf50;
+                border-radius: 4px;
+                padding: 0.75rem;
+                margin: 1rem 0;
+                text-align: center;
+            `;
+            statusDiv.innerHTML = '<p style="color: #2e7d32; font-weight: bold; margin: 0;">Analytics loading started...</p>';
+            
+            // Insert after the h2 title
+            const title = analyticsContainer.querySelector('h2');
+            if (title && title.nextSibling) {
+                analyticsContainer.insertBefore(statusDiv, title.nextSibling);
+            } else {
+                analyticsContainer.appendChild(statusDiv);
+            }
+        }
+        
         try {
             await Promise.all([
                 this.loadMonthlyTrendsChart(),
                 this.loadCategoryBreakdownChart(),
                 this.loadExpenseSummary()
             ]);
+            console.log('Analytics: All charts loaded successfully');
+            
+            // Update status message to success
+            if (statusDiv && statusDiv.parentNode) {
+                statusDiv.style.cssText = `
+                    background: #e3f2fd;
+                    border: 1px solid #2196f3;
+                    border-radius: 4px;
+                    padding: 0.75rem;
+                    margin: 1rem 0;
+                    text-align: center;
+                `;
+                statusDiv.innerHTML = '<p style="color: #1976d2; font-weight: bold; margin: 0;">Analytics loaded successfully!</p>';
+                
+                // Remove the success message after 3 seconds
+                setTimeout(() => {
+                    if (statusDiv && statusDiv.parentNode) {
+                        console.log('Analytics: Removing success message');
+                        statusDiv.remove();
+                    }
+                }, 3000);
+            }
         } catch (error) {
-            console.error('Failed to load charts:', error);
+            console.error('Analytics: Failed to load charts:', error);
+            
+            // Update status message with error
+            if (statusDiv && statusDiv.parentNode) {
+                statusDiv.style.cssText = `
+                    background: #ffebee;
+                    border: 1px solid #f44336;
+                    border-radius: 4px;
+                    padding: 0.75rem;
+                    margin: 1rem 0;
+                    text-align: center;
+                `;
+                statusDiv.innerHTML = `<p style="color: #d32f2f; font-weight: bold; margin: 0;">Analytics failed to load: ${error.message}</p>`;
+            }
+            
             this.showChartError();
         }
     }
 
     async loadMonthlyTrendsChart() {
         const canvas = document.getElementById('monthly-trends-chart');
-        if (!canvas) return;
+        console.log('Analytics: Loading monthly trends chart, canvas found:', !!canvas);
+        if (!canvas) {
+            console.warn('Analytics: Monthly trends canvas not found');
+            return;
+        }
 
         try {
             // Get monthly trends data
+            console.log('Analytics: Fetching monthly trends data...');
             const trendsData = await this.getMonthlyTrendsData();
+            console.log('Analytics: Monthly trends data received:', trendsData);
+            console.log('Analytics: Labels array:', trendsData.labels);
+            console.log('Analytics: Data array:', trendsData.data);
+            
+            // Validate data
+            if (!trendsData || !trendsData.labels || !trendsData.data) {
+                throw new Error('Invalid trends data received');
+            }
+            
+            if (trendsData.labels.length === 0) {
+                console.log('Analytics: No data available for monthly trends');
+                this.showChartError(canvas, 'No data available');
+                return;
+            }
+            
+            // Check for Invalid Date in labels
+            const invalidDates = trendsData.labels.filter(label => label === 'Invalid Date');
+            if (invalidDates.length > 0) {
+                console.error('Analytics: Found Invalid Date labels:', invalidDates);
+                console.error('Analytics: Full labels array:', trendsData.labels);
+            }
             
             // Destroy existing chart if it exists
             if (this.monthlyTrendsChart) {
                 this.monthlyTrendsChart.destroy();
+                this.monthlyTrendsChart = null;
             }
 
+            console.log('Analytics: Creating Chart.js with labels:', trendsData.labels);
+            
             // Create new chart
             this.monthlyTrendsChart = new Chart(canvas, {
                 type: 'line',
@@ -76,8 +179,10 @@ class Analytics {
                 }
             });
 
+            console.log('Analytics: Monthly trends chart created successfully');
+
         } catch (error) {
-            console.error('Failed to load monthly trends chart:', error);
+            console.error('Analytics: Failed to load monthly trends chart:', error);
             this.showChartError(canvas, 'Failed to load monthly trends');
         }
     }
@@ -87,9 +192,8 @@ class Analytics {
         if (!canvas) return;
 
         try {
-            // Get category breakdown data for current month
-            const now = new Date();
-            const breakdownData = await this.getCategoryBreakdownData(now.getFullYear(), now.getMonth() + 1);
+            // Get category breakdown data for selected month
+            const breakdownData = await this.getCategoryBreakdownData(this.selectedYear, this.selectedMonth);
             
             // Destroy existing chart if it exists
             if (this.categoryBreakdownChart) {
@@ -125,7 +229,7 @@ class Analytics {
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Category Breakdown (This Month)'
+                            text: `Category Breakdown (${new Date(this.selectedYear, this.selectedMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })})`
                         },
                         legend: {
                             position: 'bottom',
@@ -214,7 +318,6 @@ class Analytics {
 
     async getExpenseSummaryFromLocal(year, month) {
         const expenses = await this.getExpensesFromIndexedDB();
-        const categories = await this.getCategoriesFromIndexedDB();
         
         // Filter expenses for the specified month
         const monthlyExpenses = expenses.filter(expense => {
@@ -238,17 +341,21 @@ class Analytics {
     }
 
     async getMonthlyTrendsData() {
+        console.log('Analytics: Getting monthly trends data, online:', navigator.onLine);
         try {
             // Try to get data from API first
             if (navigator.onLine) {
+                console.log('Analytics: Fetching from API...');
                 const apiData = await this.expenseService.getMonthlyTrends(12);
+                console.log('Analytics: API data received:', apiData);
                 return this.formatMonthlyTrendsForChart(apiData);
             }
         } catch (error) {
-            console.log('API unavailable, using local data');
+            console.log('Analytics: API unavailable, using local data. Error:', error);
         }
 
         // Fallback to local data
+        console.log('Analytics: Using local data fallback');
         return await this.getMonthlyTrendsFromLocal();
     }
 
@@ -268,13 +375,60 @@ class Analytics {
     }
 
     formatMonthlyTrendsForChart(apiData) {
-        const labels = apiData.map(item => {
-            const date = new Date(item.month.year, item.month.monthValue - 1);
-            return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        console.log('Analytics: formatMonthlyTrendsForChart called with:', apiData);
+        
+        // Quick test of date parsing
+        const testItem = {month: '2025-11', totalAmount: 12.75};
+        console.log('Analytics: Testing date parsing with:', testItem.month);
+        const [testYear, testMonth] = testItem.month.split('-');
+        console.log('Analytics: Test parsed year:', testYear, 'month:', testMonth);
+        const testDate = new Date(parseInt(testYear), parseInt(testMonth) - 1);
+        console.log('Analytics: Test created date:', testDate);
+        const testFormatted = testDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        console.log('Analytics: Test formatted:', testFormatted);
+        
+        if (!apiData || !Array.isArray(apiData)) {
+            console.warn('Analytics: Invalid API data for monthly trends:', apiData);
+            return { labels: [], data: [] };
+        }
+        
+        const labels = apiData.map((item, index) => {
+            console.log(`Analytics: Processing item ${index}:`, item);
+            try {
+                // Handle different date formats from API
+                let date;
+                if (item.month && typeof item.month === 'object' && item.month.year && item.month.monthValue) {
+                    // Handle Java YearMonth format: {year: 2024, monthValue: 1}
+                    console.log('Analytics: Using Java YearMonth format');
+                    date = new Date(item.month.year, item.month.monthValue - 1);
+                } else if (item.month && typeof item.month === 'string') {
+                    // Handle string format like "2024-01" or "2025-02"
+                    console.log('Analytics: Using string format:', item.month);
+                    const [year, month] = item.month.split('-');
+                    console.log('Analytics: Parsed year:', year, 'month:', month);
+                    date = new Date(parseInt(year), parseInt(month) - 1);
+                    console.log('Analytics: Created date:', date);
+                } else {
+                    // Fallback to current date
+                    console.warn('Analytics: Unknown month format:', item.month);
+                    date = new Date();
+                }
+                
+                const formattedDate = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                console.log('Analytics: Formatted date:', formattedDate);
+                return formattedDate;
+            } catch (error) {
+                console.error('Analytics: Error formatting date:', error, item);
+                return 'Invalid Date';
+            }
         });
         
-        const data = apiData.map(item => parseFloat(item.totalAmount));
+        const data = apiData.map(item => {
+            const amount = parseFloat(item.totalAmount || 0);
+            return isNaN(amount) ? 0 : amount;
+        });
         
+        console.log('Analytics: Final formatted monthly trends - labels:', labels, 'data:', data);
         return { labels, data };
     }
 
@@ -286,40 +440,58 @@ class Analytics {
     }
 
     async getMonthlyTrendsFromLocal() {
-        // Get expenses from IndexedDB
-        const expenses = await this.getExpensesFromIndexedDB();
-        const categories = await this.getCategoriesFromIndexedDB();
-        
-        // Group expenses by month
-        const monthlyTotals = {};
-        const now = new Date();
-        
-        // Initialize last 12 months
-        for (let i = 11; i >= 0; i--) {
-            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            monthlyTotals[key] = 0;
-        }
-        
-        // Sum expenses by month
-        expenses.forEach(expense => {
-            const expenseDate = new Date(expense.date);
-            const key = `${expenseDate.getFullYear()}-${String(expenseDate.getMonth() + 1).padStart(2, '0')}`;
-            if (monthlyTotals.hasOwnProperty(key)) {
-                monthlyTotals[key] += expense.amount;
+        try {
+            // Get expenses from IndexedDB
+            const expenses = await this.getExpensesFromIndexedDB();
+            console.log('Analytics: Local expenses for trends:', expenses.length);
+            
+            // Group expenses by month
+            const monthlyTotals = {};
+            const now = new Date();
+            
+            // Initialize last 12 months with zero values
+            for (let i = 11; i >= 0; i--) {
+                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                monthlyTotals[key] = 0;
             }
-        });
-        
-        // Convert to chart format
-        const labels = Object.keys(monthlyTotals).map(key => {
-            const [year, month] = key.split('-');
-            const date = new Date(parseInt(year), parseInt(month) - 1);
-            return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-        });
-        
-        const data = Object.values(monthlyTotals);
-        
-        return { labels, data };
+            
+            // Sum expenses by month
+            expenses.forEach(expense => {
+                try {
+                    const expenseDate = new Date(expense.date);
+                    if (!isNaN(expenseDate.getTime())) {
+                        const key = `${expenseDate.getFullYear()}-${String(expenseDate.getMonth() + 1).padStart(2, '0')}`;
+                        if (monthlyTotals.hasOwnProperty(key)) {
+                            monthlyTotals[key] += (expense.amount || 0);
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Analytics: Invalid expense date:', expense.date, error);
+                }
+            });
+            
+            // Convert to chart format
+            const labels = Object.keys(monthlyTotals).map(key => {
+                try {
+                    const [year, month] = key.split('-');
+                    const date = new Date(parseInt(year), parseInt(month) - 1);
+                    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                } catch (error) {
+                    console.warn('Analytics: Error formatting local date:', key, error);
+                    return 'Invalid Date';
+                }
+            });
+            
+            const data = Object.values(monthlyTotals);
+            
+            console.log('Analytics: Local monthly trends - labels:', labels, 'data:', data);
+            return { labels, data };
+        } catch (error) {
+            console.error('Analytics: Error getting local monthly trends:', error);
+            // Return empty data as fallback
+            return { labels: [], data: [] };
+        }
     }
 
     async getCategoryBreakdownFromLocal(year, month) {
@@ -354,7 +526,7 @@ class Analytics {
     }
 
     async getExpensesFromIndexedDB() {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             if (!window.app || !window.app.db) {
                 resolve([]);
                 return;
@@ -376,7 +548,7 @@ class Analytics {
     }
 
     async getCategoriesFromIndexedDB() {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             if (!window.app || !window.app.db) {
                 resolve([]);
                 return;
@@ -398,19 +570,26 @@ class Analytics {
     }
 
     showChartError(canvas, message = 'Failed to load chart') {
-        if (!canvas) return;
+        if (!canvas) {
+            console.warn('Analytics: No canvas provided for error display');
+            return;
+        }
         
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw error message
-        ctx.fillStyle = '#666';
-        ctx.font = '16px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(message, canvas.width / 2, canvas.height / 2);
-        
-        ctx.font = '12px Arial';
-        ctx.fillText('Check your connection and try again', canvas.width / 2, canvas.height / 2 + 25);
+        try {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw error message
+            ctx.fillStyle = '#666';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+            
+            ctx.font = '12px Arial';
+            ctx.fillText('Check your connection and try again', canvas.width / 2, canvas.height / 2 + 25);
+        } catch (error) {
+            console.error('Analytics: Error drawing chart error message:', error);
+        }
     }
 
     // Utility methods for analytics calculations
@@ -524,5 +703,58 @@ class Analytics {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    }
+
+    // Initialize month selector for category breakdown
+    initializeMonthSelector() {
+        const selector = document.getElementById('category-month-selector');
+        if (!selector) return;
+
+        // Clear existing options
+        selector.innerHTML = '';
+
+        // Generate last 12 months
+        const months = [];
+        const now = new Date();
+        
+        for (let i = 0; i < 12; i++) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.push({
+                year: date.getFullYear(),
+                month: date.getMonth() + 1,
+                display: date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+            });
+        }
+
+        // Add options to selector
+        months.forEach(monthData => {
+            const option = document.createElement('option');
+            option.value = `${monthData.year}-${monthData.month}`;
+            option.textContent = monthData.display;
+            
+            // Select current month by default
+            if (monthData.year === this.selectedYear && monthData.month === this.selectedMonth) {
+                option.selected = true;
+            }
+            
+            selector.appendChild(option);
+        });
+
+        // Add event listener for month changes
+        selector.addEventListener('change', (e) => {
+            const [year, month] = e.target.value.split('-');
+            this.selectedYear = parseInt(year);
+            this.selectedMonth = parseInt(month);
+            
+            console.log('Analytics: Month changed to:', this.selectedYear, this.selectedMonth);
+            
+            // Reload category breakdown chart with new month
+            this.loadCategoryBreakdownChart();
+        });
+    }
+
+    // Update category breakdown chart for selected month
+    async updateCategoryBreakdownChart() {
+        await this.loadCategoryBreakdownChart();
     }
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'expense-tracker-v1';
+const CACHE_NAME = 'expense-tracker-local-v1';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -6,12 +6,11 @@ const urlsToCache = [
   '/css/components.css',
   '/js/app.js',
   '/js/expense-service.js',
-  '/js/sync-service.js',
   '/js/analytics.js',
   '/js/ui-components.js',
+  '/js/error-handler.js',
   '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  '/icons/icon.svg',
   'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
@@ -29,25 +28,48 @@ self.addEventListener('install', event => {
   );
 });
 
-// Fetch event - serve from cache when offline
+// Fetch event - cache-first strategy for local performance
 self.addEventListener('fetch', event => {
+  // Only handle GET requests for caching
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Return cached version or fetch from network
+        // Return cached version if available
         if (response) {
           return response;
         }
         
+        // For API requests, use network-first with local fallback
+        if (event.request.url.includes('/api/')) {
+          return fetch(event.request).then(response => {
+            // Only cache successful responses
+            if (response && response.status === 200) {
+              const responseToCache = response.clone();
+              caches.open(CACHE_NAME)
+                .then(cache => {
+                  cache.put(event.request, responseToCache);
+                });
+            }
+            return response;
+          }).catch(() => {
+            // Return cached API response if available
+            return caches.match(event.request);
+          });
+        }
+        
+        // For static resources, fetch and cache
         return fetch(event.request).then(response => {
           // Check if we received a valid response
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
 
-          // Clone the response
+          // Clone and cache the response
           const responseToCache = response.clone();
-
           caches.open(CACHE_NAME)
             .then(cache => {
               cache.put(event.request, responseToCache);
@@ -80,119 +102,32 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Background sync for offline data
-self.addEventListener('sync', event => {
-  if (event.tag === 'expense-sync') {
-    event.waitUntil(syncOfflineExpenses());
-  }
-});
-
-// Sync offline expenses when connection is restored
-async function syncOfflineExpenses() {
-  try {
-    // Get offline expenses from IndexedDB
-    const offlineExpenses = await getOfflineExpenses();
-    
-    for (const expense of offlineExpenses) {
-      try {
-        // Attempt to sync each expense
-        const response = await fetch('/api/expenses', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(expense)
-        });
-        
-        if (response.ok) {
-          // Remove from offline storage after successful sync
-          await removeOfflineExpense(expense.id);
-        }
-      } catch (error) {
-        console.error('Failed to sync expense:', error);
-      }
-    }
-  } catch (error) {
-    console.error('Background sync failed:', error);
-  }
-}
-
-// Helper functions for IndexedDB operations
-async function getOfflineExpenses() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('ExpenseTrackerDB', 1);
-    
-    request.onsuccess = event => {
-      const db = event.target.result;
-      const transaction = db.transaction(['offlineExpenses'], 'readonly');
-      const store = transaction.objectStore('offlineExpenses');
-      const getAllRequest = store.getAll();
-      
-      getAllRequest.onsuccess = () => {
-        resolve(getAllRequest.result);
-      };
-      
-      getAllRequest.onerror = () => {
-        reject(getAllRequest.error);
-      };
-    };
-    
-    request.onerror = () => {
-      reject(request.error);
-    };
-  });
-}
-
-async function removeOfflineExpense(expenseId) {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('ExpenseTrackerDB', 1);
-    
-    request.onsuccess = event => {
-      const db = event.target.result;
-      const transaction = db.transaction(['offlineExpenses'], 'readwrite');
-      const store = transaction.objectStore('offlineExpenses');
-      const deleteRequest = store.delete(expenseId);
-      
-      deleteRequest.onsuccess = () => {
-        resolve();
-      };
-      
-      deleteRequest.onerror = () => {
-        reject(deleteRequest.error);
-      };
-    };
-    
-    request.onerror = () => {
-      reject(request.error);
-    };
-  });
-}
-
-// Push notification handling (for future payment reminders)
+// Push notification handling for payment reminders (local notifications only)
 self.addEventListener('push', event => {
   if (event.data) {
     const data = event.data.json();
     const options = {
       body: data.body,
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
+      icon: '/icons/icon.svg',
+      badge: '/icons/icon.svg',
       vibrate: [100, 50, 100],
       data: {
         dateOfArrival: Date.now(),
-        primaryKey: data.primaryKey
+        primaryKey: data.primaryKey,
+        type: 'payment-reminder'
       },
       actions: [
         {
           action: 'mark-paid',
-          title: 'Mark as Paid',
-          icon: '/icons/check.png'
+          title: 'Mark as Paid'
         },
         {
           action: 'snooze',
-          title: 'Remind Later',
-          icon: '/icons/snooze.png'
+          title: 'Remind Later'
         }
-      ]
+      ],
+      requireInteraction: true,
+      tag: 'payment-reminder-' + data.primaryKey
     };
     
     event.waitUntil(
@@ -201,22 +136,45 @@ self.addEventListener('push', event => {
   }
 });
 
-// Handle notification clicks
+// Handle notification clicks for local actions only
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   
   if (event.action === 'mark-paid') {
-    // Handle mark as paid action
+    // Open expense entry form with reminder data pre-filled
     event.waitUntil(
-      clients.openWindow('/expenses?action=add&reminder=' + event.notification.data.primaryKey)
+      clients.openWindow('/?action=add&reminder=' + event.notification.data.primaryKey)
     );
   } else if (event.action === 'snooze') {
-    // Handle snooze action
-    console.log('Reminder snoozed');
+    // Schedule local reminder for later (handled by main app)
+    event.waitUntil(
+      clients.matchAll().then(clients => {
+        if (clients.length > 0) {
+          clients[0].postMessage({
+            type: 'snooze-reminder',
+            reminderId: event.notification.data.primaryKey
+          });
+        }
+      })
+    );
   } else {
     // Default action - open the app
     event.waitUntil(
       clients.openWindow('/')
     );
+  }
+});
+
+// Handle messages from main app for local operations
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  } else if (event.data && event.data.type === 'CACHE_API_RESPONSE') {
+    // Cache API responses for offline access
+    caches.open(CACHE_NAME).then(cache => {
+      cache.put(event.data.url, new Response(JSON.stringify(event.data.data), {
+        headers: { 'Content-Type': 'application/json' }
+      }));
+    });
   }
 });

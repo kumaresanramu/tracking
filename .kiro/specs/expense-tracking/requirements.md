@@ -2,12 +2,11 @@
 
 ## Introduction
 
-A Progressive Web Application (PWA) for personal expense tracking that provides month-wise expense management, payment reminders, hierarchical expense categories, and visual analytics. The system integrates with Google Sheets for data storage and uses Spring Boot for the backend API.
+A Progressive Web Application (PWA) for personal expense tracking that provides month-wise expense management, payment reminders, hierarchical expense categories, and visual analytics. The system uses Spring Boot for the backend API with local database storage.
 
 ## Glossary
 
 - **Expense_Tracker**: The main application system
-- **Google_Sheets_API**: External service for data persistence
 - **PWA**: Progressive Web Application with offline capabilities
 - **Payment_Reminder**: Automated notification system for upcoming payments
 - **Expense_Category**: Hierarchical classification system for expenses
@@ -25,20 +24,20 @@ A Progressive Web Application (PWA) for personal expense tracking that provides 
 1. WHEN a user creates a new expense record, THE Expense_Tracker SHALL store the expense with date, amount, category, subcategory, and description
 2. WHEN a user selects an expense category, THE Expense_Tracker SHALL display relevant subcategories if they exist
 3. WHEN a user views expenses, THE Expense_Tracker SHALL organize them by month and category hierarchy
-4. WHEN an expense is created, THE Expense_Tracker SHALL immediately sync the data to Google Sheets
+4. WHEN an expense is created, THE Expense_Tracker SHALL immediately store the data in the local database
 5. THE Expense_Tracker SHALL support both main categories (like Food) and hierarchical categories (like House Construction > Wire, Tiles, Painting)
 
-### Requirement 2: Google Sheets Integration
+### Requirement 2: Local Data Storage
 
-**User Story:** As a user, I want my expense data stored in Google Sheets, so that I can access and backup my data independently of the application.
+**User Story:** As a user, I want my expense data stored locally in the application database, so that I can access my data quickly and reliably.
 
 #### Acceptance Criteria
 
-1. WHEN the application starts, THE Google_Sheets_API SHALL authenticate and establish connection to the user's designated expense tracking sheet
-2. WHEN a new expense is added, THE Expense_Tracker SHALL create a new row in the appropriate month's sheet within 5 seconds
-3. WHEN expense data is modified, THE Expense_Tracker SHALL update the corresponding Google Sheets entry immediately
-4. IF Google Sheets is unavailable, THEN THE Expense_Tracker SHALL queue changes locally and sync when connection is restored
-5. THE Expense_Tracker SHALL organize data in separate sheets for each month (e.g., "January 2024", "February 2024")
+1. WHEN the application starts, THE Expense_Tracker SHALL initialize the local database for expense storage
+2. WHEN a new expense is added, THE Expense_Tracker SHALL store it in the local database immediately
+3. WHEN expense data is modified, THE Expense_Tracker SHALL update the corresponding database entry immediately
+4. THE Expense_Tracker SHALL maintain data integrity and consistency in the local database
+5. THE Expense_Tracker SHALL organize data by month and category for efficient retrieval
 
 ### Requirement 3: Payment Reminder System
 
@@ -54,15 +53,15 @@ A Progressive Web Application (PWA) for personal expense tracking that provides 
 
 ### Requirement 4: Progressive Web Application Features
 
-**User Story:** As a user, I want to use the expense tracker as a mobile app with offline capabilities, so that I can record expenses anywhere without internet connectivity.
+**User Story:** As a user, I want to use the expense tracker as a mobile app, so that I can record expenses anywhere with a responsive interface.
 
 #### Acceptance Criteria
 
 1. WHEN a user visits the application, THE PWA SHALL be installable on their device
-2. WHEN the device is offline, THE PWA SHALL allow users to create and view expense records
-3. WHEN internet connectivity is restored, THE PWA SHALL automatically sync offline changes to Google Sheets
-4. THE PWA SHALL provide a responsive interface that works on mobile, tablet, and desktop devices
-5. THE PWA SHALL cache essential application data for offline functionality
+2. THE PWA SHALL allow users to create and view expense records with fast local storage
+3. THE PWA SHALL provide a responsive interface that works on mobile, tablet, and desktop devices
+4. THE PWA SHALL cache essential application data for optimal performance
+5. THE PWA SHALL provide offline viewing capabilities for recently accessed data
 
 ### Requirement 5: Visual Analytics and Reporting
 
@@ -95,7 +94,7 @@ A Progressive Web Application (PWA) for personal expense tracking that provides 
 #### Acceptance Criteria
 
 1. THE Spring_Boot_API SHALL provide RESTful endpoints for all expense operations (create, read, update, delete)
-2. THE Spring_Boot_API SHALL handle Google Sheets API integration and authentication
+2. THE Spring_Boot_API SHALL handle local database operations and data persistence
 3. THE Spring_Boot_API SHALL implement proper error handling and return appropriate HTTP status codes
 4. THE Spring_Boot_API SHALL validate all incoming expense data before processing
 5. THE Spring_Boot_API SHALL support CORS configuration for PWA frontend integration
@@ -114,14 +113,14 @@ A Progressive Web Application (PWA) for personal expense tracking that provides 
 6. THE UI SHALL use modern web technologies (HTML5, CSS3, JavaScript) optimized for PWA performance
 7. WHEN displaying charts and analytics, THE UI SHALL present data in an easy-to-understand visual format
 
-### Requirement 9: Data Synchronization and Offline Support
+### Requirement 9: Data Persistence and Performance
 
-**User Story:** As a user, I want seamless data synchronization between the app and Google Sheets, so that my data is always consistent and available.
+**User Story:** As a user, I want fast and reliable data storage, so that my expense data is always available and the application performs well.
 
 #### Acceptance Criteria
 
-1. WHEN the application detects internet connectivity, THE Expense_Tracker SHALL automatically sync pending changes
-2. WHEN conflicts occur during sync, THE Expense_Tracker SHALL prioritize the most recent timestamp
-3. WHEN sync fails, THE Expense_Tracker SHALL retry with exponential backoff up to 5 attempts
-4. THE Expense_Tracker SHALL maintain a local cache of recent expense data for offline viewing
-5. WHEN sync is in progress, THE Expense_Tracker SHALL display sync status to the user
+1. WHEN the application processes expense operations, THE Expense_Tracker SHALL store data locally with immediate persistence
+2. WHEN data conflicts occur, THE Expense_Tracker SHALL maintain data integrity using database constraints
+3. WHEN operations fail, THE Expense_Tracker SHALL provide clear error messages and maintain data consistency
+4. THE Expense_Tracker SHALL maintain a local database of all expense data for fast retrieval
+5. WHEN processing large amounts of data, THE Expense_Tracker SHALL maintain responsive performance

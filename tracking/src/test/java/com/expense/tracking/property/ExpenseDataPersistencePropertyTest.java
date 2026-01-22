@@ -42,7 +42,6 @@ public class ExpenseDataPersistencePropertyTest {
         assertThat(expense.getDate()).isEqualTo(date);
         assertThat(expense.getCategory().getName()).isEqualTo(categoryName);
         assertThat(expense.getDescription()).isEqualTo(description);
-        assertThat(expense.getSynced()).isFalse(); // Default value
         
         // Test that the entity can be properly constructed and maintains data integrity
         Expense copiedExpense = Expense.builder()
@@ -50,14 +49,12 @@ public class ExpenseDataPersistencePropertyTest {
                 .date(expense.getDate())
                 .category(expense.getCategory())
                 .description(expense.getDescription())
-                .synced(expense.getSynced())
                 .build();
                 
         assertThat(copiedExpense.getAmount()).isEqualByComparingTo(expense.getAmount());
         assertThat(copiedExpense.getDate()).isEqualTo(expense.getDate());
         assertThat(copiedExpense.getCategory().getName()).isEqualTo(expense.getCategory().getName());
         assertThat(copiedExpense.getDescription()).isEqualTo(expense.getDescription());
-        assertThat(copiedExpense.getSynced()).isEqualTo(expense.getSynced());
     }
     
     @Provide

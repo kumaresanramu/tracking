@@ -70,7 +70,6 @@ public class ReminderToExpenseConversionPropertyTest {
                 .date(expectedExpenseRequest.getDate())
                 .category(reminder.getCategory())
                 .description(expectedExpenseRequest.getDescription())
-                .synced(false)
                 .build();
         
         // Verify the expense contains the correct information from the reminder
@@ -124,7 +123,6 @@ public class ReminderToExpenseConversionPropertyTest {
                 .date(expectedExpenseRequest.getDate())
                 .category(null)
                 .description(expectedExpenseRequest.getDescription())
-                .synced(false)
                 .build();
         
         assertThat(simulatedExpense.getAmount()).isEqualByComparingTo(reminder.getAmount());

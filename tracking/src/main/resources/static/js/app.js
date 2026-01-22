@@ -13,7 +13,6 @@ class ExpenseTrackerApp {
     async init() {
         // Initialize services
         this.expenseService = new ExpenseService();
-        this.syncService = new SyncService();
         this.analytics = new Analytics();
         this.ui = new UIComponents();
         this.errorHandler = new ErrorHandler();
@@ -35,6 +34,9 @@ class ExpenseTrackerApp {
         
         // Update UI
         this.updateUI();
+        
+        // Initialize theme
+        await this.initializeTheme();
         
         console.log('Expense Tracker App initialized');
     }
@@ -155,13 +157,13 @@ class ExpenseTrackerApp {
             viewAnalyticsBtn.addEventListener('click', () => this.navigateToPage('analytics'));
         }
 
-        // Settings
-        const autoSyncToggle = document.getElementById('auto-sync-enabled');
-        if (autoSyncToggle) {
-            autoSyncToggle.addEventListener('change', (e) => {
-                this.syncService.setAutoSync(e.target.checked);
-            });
+        // Settings - Theme selector
+        const themeSelector = document.getElementById('theme-selector');
+        if (themeSelector) {
+            themeSelector.addEventListener('change', (e) => this.changeTheme(e.target.value));
         }
+        
+        // Auto-sync functionality has been removed
     }
 
     async initIndexedDB() {
@@ -188,7 +190,6 @@ class ExpenseTrackerApp {
                     expenseStore.createIndex('date', 'date', { unique: false });
                     expenseStore.createIndex('categoryId', 'categoryId', { unique: false });
                     expenseStore.createIndex('month', ['year', 'month'], { unique: false });
-                    expenseStore.createIndex('synced', 'synced', { unique: false });
                 }
                 
                 // Create categories object store
@@ -198,22 +199,12 @@ class ExpenseTrackerApp {
                     categoryStore.createIndex('parentId', 'parentId', { unique: false });
                 }
                 
-                // Create offline expenses queue
-                if (!db.objectStoreNames.contains('offlineExpenses')) {
-                    const offlineStore = db.createObjectStore('offlineExpenses', { keyPath: 'tempId', autoIncrement: true });
-                    offlineStore.createIndex('timestamp', 'timestamp', { unique: false });
-                }
-                
                 // Create app settings store
                 if (!db.objectStoreNames.contains('settings')) {
                     db.createObjectStore('settings', { keyPath: 'key' });
                 }
                 
-                // Create sync metadata store
-                if (!db.objectStoreNames.contains('syncMetadata')) {
-                    const syncStore = db.createObjectStore('syncMetadata', { keyPath: 'id' });
-                    syncStore.createIndex('lastSync', 'lastSync', { unique: false });
-                }
+                // Remove sync-related stores - no longer needed
                 
                 console.log('IndexedDB schema created/updated');
             };
@@ -297,74 +288,14 @@ class ExpenseTrackerApp {
     }
 
     setupConnectivityMonitoring() {
-        // Monitor online/offline status
+        // Monitor online/offline status - simplified for local-only operation
         window.addEventListener('online', () => {
-            this.updateSyncStatus('online');
-            // Sync service will handle automatic sync on connectivity restoration
+            console.log('Connection restored');
         });
         
         window.addEventListener('offline', () => {
-            this.updateSyncStatus('offline');
+            console.log('Connection lost - operating in offline mode');
         });
-        
-        // Listen for custom connectivity change events from sync service
-        window.addEventListener('connectivitychange', (event) => {
-            const { online } = event.detail;
-            this.updateSyncStatus(online ? 'online' : 'offline');
-        });
-        
-        // Initial status
-        this.updateSyncStatus(navigator.onLine ? 'online' : 'offline');
-    }
-
-    updateSyncStatus(status, details = {}) {
-        const indicator = document.getElementById('sync-indicator');
-        const statusContainer = document.getElementById('sync-status-container');
-        
-        if (statusContainer) {
-            const statusInfo = {
-                state: status,
-                lastSync: details.lastSync || this.syncService?.lastSyncTime,
-                pendingCount: details.pendingCount || 0,
-                progress: details.progress,
-                errorMessage: details.errorMessage,
-                syncedCount: details.syncedCount
-            };
-            
-            this.ui.renderSyncStatus(statusInfo, statusContainer);
-        }
-        
-        // Legacy support for existing sync indicator
-        if (indicator) {
-            const text = document.getElementById('sync-text');
-            indicator.className = `sync-indicator ${status}`;
-            
-            if (text) {
-                switch (status) {
-                    case 'online':
-                        text.textContent = 'Online';
-                        break;
-                    case 'offline':
-                        text.textContent = 'Offline';
-                        break;
-                    case 'syncing':
-                        text.textContent = 'Syncing...';
-                        break;
-                    case 'error':
-                        text.textContent = 'Sync Error';
-                        break;
-                    case 'success':
-                        text.textContent = 'Synced';
-                        break;
-                }
-            }
-        }
-        
-        // Update connection status indicator
-        const connectionStatus = document.getElementById('connection-status');
-        if (connectionStatus) {
-            this.ui.renderConnectionStatus(status === 'online', connectionStatus);
-        }
     }
 
     navigateToPage(page) {
@@ -398,7 +329,12 @@ class ExpenseTrackerApp {
                 this.displayMonthlyExpenses();
                 break;
             case 'analytics':
-                await this.analytics.loadCharts();
+                console.log('App: Navigating to analytics page');
+                // Wait for the page to be visible before loading charts
+                requestAnimationFrame(async () => {
+                    await this.analytics.loadCharts();
+                    console.log('App: Analytics charts loading completed');
+                });
                 break;
             case 'reminders':
                 await this.loadReminders();
@@ -427,8 +363,7 @@ class ExpenseTrackerApp {
             amount: parseFloat(formData.get('amount')),
             date: formData.get('date'),
             categoryId: parseInt(formData.get('categoryId')),
-            createdAt: new Date().toISOString(),
-            synced: false
+            createdAt: new Date().toISOString()
         };
         
         // Additional validation
@@ -453,30 +388,35 @@ class ExpenseTrackerApp {
         expense.month = expenseDate.getMonth() + 1;
         
         try {
-            this.updateSyncStatus('syncing', { progress: 0 });
+            let savedExpense;
             
-            if (navigator.onLine) {
-                // Online - save to server
-                const savedExpense = await this.expenseService.createExpense(expense);
-                savedExpense.synced = true;
+            // Check if we're editing an existing expense
+            if (this.editingExpenseId) {
+                // Update existing expense
+                savedExpense = await this.expenseService.updateExpense(this.editingExpenseId, expense);
+                
+                // Update in local array
+                const index = this.expenses.findIndex(e => e.id === this.editingExpenseId);
+                if (index !== -1) {
+                    this.expenses[index] = savedExpense;
+                }
+                
+                // Also update in IndexedDB
+                await this.saveToIndexedDB('expenses', savedExpense);
+                
+                this.ui.showToast('Expense updated successfully!', 'success');
+                
+                // Clear editing mode
+                this.editingExpenseId = null;
+            } else {
+                // Create new expense
+                savedExpense = await this.expenseService.createExpense(expense);
                 this.expenses.unshift(savedExpense);
                 
                 // Also save to IndexedDB for offline access
                 await this.saveToIndexedDB('expenses', savedExpense);
                 
                 this.ui.showToast('Expense added successfully!', 'success');
-                this.updateSyncStatus('success', { syncedCount: 1 });
-            } else {
-                // Offline - save to IndexedDB and queue for sync
-                const queuedExpense = await this.syncService.queueExpenseForSync(expense);
-                
-                // Also add to main expenses for immediate UI update
-                queuedExpense.id = queuedExpense.tempId;
-                this.expenses.unshift(queuedExpense);
-                await this.saveToIndexedDB('expenses', queuedExpense);
-                
-                this.ui.showToast('Expense saved offline. Will sync when online.', 'warning');
-                this.updateSyncStatus('offline', { pendingCount: 1 });
             }
             
             // Update UI
@@ -502,13 +442,6 @@ class ExpenseTrackerApp {
                 onRetry: () => this.handleExpenseSubmit(e),
                 retryable: true
             });
-            
-            this.updateSyncStatus('error', { errorMessage: error.message });
-        } finally {
-            // Reset sync status after a delay
-            setTimeout(() => {
-                this.updateSyncStatus(navigator.onLine ? 'online' : 'offline');
-            }, 2000);
         }
     }
 
@@ -608,8 +541,16 @@ class ExpenseTrackerApp {
         }
         
         container.innerHTML = this.expenses.map(expense => {
-            const category = this.categories.find(c => c.id === expense.categoryId);
-            const categoryName = category ? category.name : 'Unknown';
+            // Handle both API formats: expense.category.name (from API) or expense.categoryId (from local)
+            let categoryName = 'Unknown';
+            if (expense.category && expense.category.name) {
+                // API format: expense has category object with name
+                categoryName = expense.category.name;
+            } else if (expense.categoryId) {
+                // Local format: expense has categoryId, need to find in categories array
+                const category = this.categories.find(c => c.id === expense.categoryId);
+                categoryName = category ? category.name : 'Unknown';
+            }
             
             return `
                 <div class="expense-item">
@@ -644,8 +585,16 @@ class ExpenseTrackerApp {
         }
         
         container.innerHTML = recentExpenses.map(expense => {
-            const category = this.categories.find(c => c.id === expense.categoryId);
-            const categoryName = category ? category.name : 'Unknown';
+            // Handle both API formats: expense.category.name (from API) or expense.categoryId (from local)
+            let categoryName = 'Unknown';
+            if (expense.category && expense.category.name) {
+                // API format: expense has category object with name
+                categoryName = expense.category.name;
+            } else if (expense.categoryId) {
+                // Local format: expense has categoryId, need to find in categories array
+                const category = this.categories.find(c => c.id === expense.categoryId);
+                categoryName = category ? category.name : 'Unknown';
+            }
             
             return `
                 <div class="expense-item">
@@ -687,8 +636,39 @@ class ExpenseTrackerApp {
     }
 
     async editExpense(id) {
-        // TODO: Implement expense editing
-        console.log('Edit expense:', id);
+        try {
+            // Find the expense to edit
+            const expense = this.expenses.find(e => e.id === id);
+            if (!expense) {
+                this.ui.showToast('Expense not found', 'error');
+                return;
+            }
+
+            // Get the category ID - handle both API formats
+            let categoryId = expense.categoryId;
+            if (expense.category && expense.category.id) {
+                categoryId = expense.category.id;
+            }
+
+            // Pre-fill the form with expense data
+            document.getElementById('expense-description').value = expense.description;
+            document.getElementById('expense-amount').value = expense.amount;
+            document.getElementById('expense-date').value = expense.date;
+            document.getElementById('expense-category').value = categoryId;
+
+            // Navigate to expenses page
+            this.navigateToPage('expenses');
+
+            // Show edit mode message
+            this.ui.showToast('Editing expense - modify the form and submit to update', 'info', 5000);
+
+            // Store the expense ID for updating instead of creating
+            this.editingExpenseId = id;
+
+        } catch (error) {
+            console.error('Failed to edit expense:', error);
+            this.ui.showToast('Failed to load expense for editing', 'error');
+        }
     }
 
     async deleteExpense(id) {
@@ -902,8 +882,242 @@ class ExpenseTrackerApp {
     }
 
     showAddReminderForm() {
-        // TODO: Implement add reminder form
-        this.ui.showToast('Add reminder form coming soon!', 'info');
+        this.ui.showModal('Add Payment Reminder', this.createReminderFormHTML(), {
+            onConfirm: () => this.handleAddReminder(),
+            confirmText: 'Add Reminder',
+            cancelText: 'Cancel'
+        });
+        
+        // Populate categories dropdown after modal is shown
+        this.populateReminderCategories();
+    }
+
+    createReminderFormHTML() {
+        return `
+            <form id="add-reminder-form" class="form">
+                <div class="form-group">
+                    <label for="reminder-name">Reminder Name *</label>
+                    <input type="text" id="reminder-name" name="name" required 
+                           placeholder="e.g., Rent, Electricity Bill" maxlength="200">
+                </div>
+
+                <div class="form-group">
+                    <label for="reminder-amount">Amount *</label>
+                    <input type="number" id="reminder-amount" name="amount" required 
+                           step="0.01" min="0.01" placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label for="reminder-due-date">Due Date *</label>
+                    <input type="date" id="reminder-due-date" name="dueDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="reminder-frequency">Frequency *</label>
+                    <select id="reminder-frequency" name="frequency" required>
+                        <option value="">Select frequency</option>
+                        <option value="MONTHLY">Monthly</option>
+                        <option value="QUARTERLY">Quarterly</option>
+                        <option value="YEARLY">Yearly</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="reminder-category">Category</label>
+                    <select id="reminder-category" name="categoryId">
+                        <option value="">Select category (optional)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="reminder-days-before">Notify Days Before</label>
+                    <input type="number" id="reminder-days-before" name="daysBefore" 
+                           min="1" max="30" value="3" placeholder="3">
+                    <small>Number of days before due date to send notification</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="reminder-notification-time">Notification Time</label>
+                    <input type="time" id="reminder-notification-time" name="preferredNotificationTime" 
+                           value="09:00">
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="reminder-email-notification" name="enableEmailNotification" checked>
+                        Enable email notifications
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="reminder-push-notification" name="enablePushNotification" checked>
+                        Enable push notifications
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label for="reminder-custom-message">Custom Message</label>
+                    <textarea id="reminder-custom-message" name="customMessage" 
+                              placeholder="Optional custom message for notifications" 
+                              maxlength="500" rows="3"></textarea>
+                </div>
+            </form>
+        `;
+    }
+
+    async handleAddReminder() {
+        const form = document.getElementById('add-reminder-form');
+        const formData = new FormData(form);
+        
+        try {
+            // Validate required fields
+            const name = formData.get('name')?.trim();
+            const amount = formData.get('amount');
+            const dueDate = formData.get('dueDate');
+            const frequency = formData.get('frequency');
+
+            if (!name || !amount || !dueDate || !frequency) {
+                this.ui.showToast('Please fill in all required fields', 'error');
+                return false;
+            }
+
+            // Prepare reminder data
+            const reminderData = {
+                name: name,
+                amount: parseFloat(amount),
+                dueDate: dueDate,
+                frequency: frequency,
+                categoryId: formData.get('categoryId') || null,
+                daysBefore: parseInt(formData.get('daysBefore')) || 3,
+                preferredNotificationTime: formData.get('preferredNotificationTime') || '09:00',
+                enableEmailNotification: formData.has('enableEmailNotification'),
+                enablePushNotification: formData.has('enablePushNotification'),
+                customMessage: formData.get('customMessage')?.trim() || null,
+                active: true
+            };
+
+            // Create the reminder
+            await this.expenseService.createPaymentReminder(reminderData);
+            
+            this.ui.showToast('Payment reminder created successfully!', 'success');
+            await this.loadReminders(); // Refresh the list
+            return true;
+
+        } catch (error) {
+            console.error('Failed to create reminder:', error);
+            this.errorHandler.handleApiError(error, '/api/reminders', {
+                onRetry: () => this.handleAddReminder(),
+                retryable: true
+            });
+            return false;
+        }
+    }
+
+    async populateReminderCategories() {
+        try {
+            const categories = await this.expenseService.getCategories();
+            const categorySelect = document.getElementById('reminder-category');
+            
+            if (categorySelect && categories) {
+                // Clear existing options except the first one
+                categorySelect.innerHTML = '<option value="">Select category (optional)</option>';
+                
+                // Add categories
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.name;
+                    categorySelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load categories for reminder form:', error);
+            // Don't show error to user as categories are optional
+        }
+    }
+
+    async editReminder(reminderId) {
+        try {
+            // Get the reminder details first
+            const reminder = await this.expenseService.getReminderById(reminderId);
+            
+            this.ui.showModal('Edit Payment Reminder', this.createReminderFormHTML(reminder), {
+                onConfirm: () => this.handleEditReminder(reminderId),
+                confirmText: 'Update Reminder',
+                cancelText: 'Cancel'
+            });
+            
+            // Populate form with existing data and categories
+            this.populateReminderForm(reminder);
+            this.populateReminderCategories();
+            
+        } catch (error) {
+            console.error('Failed to load reminder for editing:', error);
+            this.ui.showToast('Failed to load reminder details', 'error');
+        }
+    }
+
+    populateReminderForm(reminder) {
+        // Populate form fields with existing reminder data
+        document.getElementById('reminder-name').value = reminder.name || '';
+        document.getElementById('reminder-amount').value = reminder.amount || '';
+        document.getElementById('reminder-due-date').value = reminder.dueDate || '';
+        document.getElementById('reminder-frequency').value = reminder.frequency || '';
+        document.getElementById('reminder-category').value = reminder.categoryId || '';
+        document.getElementById('reminder-days-before').value = reminder.daysBefore || 3;
+        document.getElementById('reminder-notification-time').value = reminder.preferredNotificationTime || '09:00';
+        document.getElementById('reminder-email-notification').checked = reminder.enableEmailNotification !== false;
+        document.getElementById('reminder-push-notification').checked = reminder.enablePushNotification !== false;
+        document.getElementById('reminder-custom-message').value = reminder.customMessage || '';
+    }
+
+    async handleEditReminder(reminderId) {
+        const form = document.getElementById('add-reminder-form');
+        const formData = new FormData(form);
+        
+        try {
+            // Validate required fields
+            const name = formData.get('name')?.trim();
+            const amount = formData.get('amount');
+            const dueDate = formData.get('dueDate');
+            const frequency = formData.get('frequency');
+
+            if (!name || !amount || !dueDate || !frequency) {
+                this.ui.showToast('Please fill in all required fields', 'error');
+                return false;
+            }
+
+            // Prepare reminder data
+            const reminderData = {
+                name: name,
+                amount: parseFloat(amount),
+                dueDate: dueDate,
+                frequency: frequency,
+                categoryId: formData.get('categoryId') || null,
+                daysBefore: parseInt(formData.get('daysBefore')) || 3,
+                preferredNotificationTime: formData.get('preferredNotificationTime') || '09:00',
+                enableEmailNotification: formData.has('enableEmailNotification'),
+                enablePushNotification: formData.has('enablePushNotification'),
+                customMessage: formData.get('customMessage')?.trim() || null,
+                active: true
+            };
+
+            // Update the reminder
+            await this.expenseService.updatePaymentReminder(reminderId, reminderData);
+            
+            this.ui.showToast('Payment reminder updated successfully!', 'success');
+            await this.loadReminders(); // Refresh the list
+            return true;
+
+        } catch (error) {
+            console.error('Failed to update reminder:', error);
+            this.errorHandler.handleApiError(error, `/api/reminders/${reminderId}`, {
+                onRetry: () => this.handleEditReminder(reminderId),
+                retryable: true
+            });
+            return false;
+        }
     }
 
     editReminder(reminderId) {
@@ -918,6 +1132,40 @@ class ExpenseTrackerApp {
             ...data
         };
         return this.saveToIndexedDB('syncMetadata', metadata);
+    }
+
+    // Theme Management
+    async initializeTheme() {
+        // Load saved theme or default to light
+        const savedTheme = await this.getSetting('theme', 'light');
+        this.applyTheme(savedTheme);
+        
+        // Set the theme selector value
+        const themeSelector = document.getElementById('theme-selector');
+        if (themeSelector) {
+            themeSelector.value = savedTheme;
+        }
+    }
+
+    async changeTheme(theme) {
+        // Apply the theme
+        this.applyTheme(theme);
+        
+        // Save the theme preference
+        await this.saveSetting('theme', theme);
+        
+        // Show confirmation
+        this.ui.showToast(`Theme changed to ${theme}`, 'success', 2000);
+    }
+
+    applyTheme(theme) {
+        // Set the data-theme attribute on the document element
+        document.documentElement.setAttribute('data-theme', theme);
+        
+        // Also set it on the body for compatibility
+        document.body.setAttribute('data-theme', theme);
+        
+        console.log('Theme applied:', theme);
     }
 }
 

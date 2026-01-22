@@ -2,12 +2,12 @@
 
 ## Overview
 
-This implementation plan breaks down the expense tracking system into discrete coding tasks that build incrementally. The approach starts with core backend functionality, adds Google Sheets integration, implements the PWA frontend, and concludes with advanced features like payment reminders and analytics.
+This implementation plan breaks down the expense tracking system into discrete coding tasks that build incrementally. The approach starts with core backend functionality, implements the PWA frontend, and concludes with advanced features like payment reminders and analytics.
 
 ## Tasks
 
 - [x] 1. Set up Spring Boot project structure and core entities
-  - Create Spring Boot project with required dependencies (Web, JPA, Security, Google Sheets API)
+  - Create Spring Boot project with required dependencies (Web, JPA, H2 Database)
   - Define core entities: Expense, Category, PaymentReminder, ReminderPreferences
   - Set up H2 database configuration for development
   - Create repository interfaces for all entities
@@ -36,7 +36,7 @@ This implementation plan breaks down the expense tracking system into discrete c
     - _Requirements: 1.1, 1.3, 7.4_
 
   - [x] 2.4 Write property test for input validation
-    - **Property 19: Input Validation**
+    - **Property 16: Input Validation**
     - **Validates: Requirements 7.4**
 
 - [x] 3. Implement hierarchical category system
@@ -51,53 +51,13 @@ This implementation plan breaks down the expense tracking system into discrete c
     - **Validates: Requirements 1.2**
 
   - [x] 3.3 Write property test for hierarchical category totals
-    - **Property 17: Hierarchical Category Totals**
+    - **Property 14: Hierarchical Category Totals**
     - **Validates: Requirements 6.5**
 
 - [x] 4. Checkpoint - Ensure core API functionality works
   - Ensure all tests pass, ask the user if questions arise.
 
-- [x] 5. Implement Google Sheets integration
-  - [x] 5.1 Set up Google Sheets API authentication
-    - Configure Google OAuth2 credentials
-    - Implement GoogleSheetsService authentication
-    - Create service account setup documentation
-    - _Requirements: 2.1, 7.2_
-
-  - [x] 5.2 Implement Google Sheets data operations
-    - Create methods for reading/writing expense data to sheets
-    - Implement monthly sheet creation and organization
-    - Add expense sync functionality
-    - _Requirements: 2.2, 2.3, 2.5_
-
-  - [x] 5.3 Write property test for Google Sheets sync timing
-    - **Property 4: Google Sheets Sync Timing**
-    - **Validates: Requirements 2.2**
-
-  - [x] 5.4 Write property test for monthly sheet organization
-    - **Property 7: Monthly Sheet Organization**
-    - **Validates: Requirements 2.5**
-
-- [x] 6. Implement offline support and sync service
-  - [x] 6.1 Create SyncService for offline queue management
-    - Implement offline operation queueing
-    - Create sync conflict resolution logic
-    - Add exponential backoff retry mechanism
-    - _Requirements: 2.4, 9.1, 9.2, 9.3_
-
-  - [x] 6.2 Write property test for offline queue behavior
-    - **Property 6: Offline Queue Behavior**
-    - **Validates: Requirements 2.4**
-
-  - [x] 6.3 Write property test for conflict resolution
-    - **Property 21: Conflict Resolution by Timestamp**
-    - **Validates: Requirements 9.2**
-
-  - [x] 6.4 Write property test for exponential backoff retry
-    - **Property 22: Exponential Backoff Retry**
-    - **Validates: Requirements 9.3**
-
-- [x] 7. Create PWA frontend structure
+- [x] 5. Create PWA frontend structure
   - [x] 7.1 Set up PWA project structure
     - Create HTML, CSS, and JavaScript files
     - Set up service worker for offline functionality
@@ -111,108 +71,123 @@ This implementation plan breaks down the expense tracking system into discrete c
     - Add form validation and submission
     - _Requirements: 8.1, 8.2_
 
-  - [x] 7.3 Write property test for offline functionality
-    - **Property 12: Offline Functionality**
-    - **Validates: Requirements 4.2**
+- [x] 5. Remove sync functionality from existing code
+  - [x] 5.1 Remove SyncService and related components
+    - Delete SyncService class and SyncController
+    - Remove sync-related entities (SyncOperation, SyncStatus, etc.)
+    - Update ExpenseService to remove sync calls
+    - _Requirements: 2.1, 7.2_
 
-- [x] 8. Implement PWA data synchronization
-  - [x] 8.1 Create frontend sync service
-    - Implement API communication layer
-    - Add offline detection and queue management
-    - Create automatic sync on connectivity restoration
-    - _Requirements: 4.3, 9.1_
+  - [x] 5.2 Update database schema
+    - Remove synced field from Expense entity
+    - Remove sync-related tables and repositories
+    - Update database initialization scripts
+    - _Requirements: 2.1, 2.2_
 
-  - [x] 8.2 Write property test for automatic sync on reconnection
-    - **Property 13: Automatic Sync on Reconnection**
-    - **Validates: Requirements 4.3**
+  - [x] 5.3 Update frontend to remove sync UI
+    - Remove sync status displays from UI
+    - Update error handling to focus on local operations
+    - Remove sync-related JavaScript code
+    - _Requirements: 4.2, 8.1_
 
-  - [x] 8.3 Write property test for connectivity-based sync
-    - **Property 20: Connectivity-Based Sync**
-    - **Validates: Requirements 9.1**
+- [x] 6. Update PWA for local-only operation
+  - [x] 6.1 Modify service worker for local caching only
+    - Remove sync event handlers
+    - Focus on caching for performance
+    - Update offline functionality for local data only
+    - _Requirements: 4.1, 4.4_
 
-- [x] 9. Checkpoint - Ensure PWA and sync functionality works
+  - [x] 6.2 Write property test for local data persistence
+    - **Property 4: Local Data Persistence**
+    - **Validates: Requirements 2.2**
+
+  - [x] 6.3 Write property test for data modification persistence
+    - **Property 5: Data Modification Persistence**
+    - **Validates: Requirements 2.3**
+
+- [ ] 7. Checkpoint - Ensure sync removal is complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [x] 10. Implement payment reminder system
-  - [x] 10.1 Create PaymentReminderController and service
+- [x] 8. Implement payment reminder system
+  - [x] 8.1 Create PaymentReminderController and service
     - Implement CRUD operations for payment reminders
     - Add reminder scheduling with user preferences
     - Create notification checking service
     - _Requirements: 3.1, 3.2, 3.3_
 
-  - [x] 10.2 Implement user-configurable reminder preferences
+  - [x] 8.2 Implement user-configurable reminder preferences
     - Add ReminderPreferences entity management
     - Implement custom notification timing
     - Add multiple notification methods support
     - _Requirements: 3.1, 3.2_
 
-  - [x] 10.3 Write property test for reminder scheduling
-    - **Property 8: Reminder Scheduling**
+  - [x] 8.3 Write property test for reminder scheduling
+    - **Property 6: Reminder Scheduling**
     - **Validates: Requirements 3.1**
 
-  - [x] 10.4 Write property test for reminder to expense conversion
-    - **Property 11: Reminder to Expense Conversion**
+  - [x] 8.4 Write property test for reminder to expense conversion
+    - **Property 9: Reminder to Expense Conversion**
     - **Validates: Requirements 3.4**
 
-- [x] 11. Implement analytics and visualization
-  - [x] 11.1 Create analytics backend endpoints
+- [x] 9. Implement analytics and visualization
+  - [x] 9.1 Create analytics backend endpoints
     - Implement GET /api/analytics/monthly-trends
     - Implement GET /api/analytics/category-breakdown/{year}/{month}
     - Add expense summary and calculation logic
     - _Requirements: 5.1, 5.2, 5.5_
 
-  - [x] 11.2 Create frontend analytics dashboard
+  - [x] 9.2 Create frontend analytics dashboard
     - Implement Chart.js integration
     - Create monthly trend visualization
     - Add category breakdown charts
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-  - [x] 11.3 Write property test for monthly trend visualization
-    - **Property 15: Monthly Trend Visualization**
+  - [x] 9.3 Write property test for monthly trend visualization
+    - **Property 12: Monthly Trend Visualization**
     - **Validates: Requirements 5.1**
 
-  - [x] 11.4 Write property test for category breakdown accuracy
-    - **Property 16: Category Breakdown Accuracy**
+  - [x] 9.4 Write property test for category breakdown accuracy
+    - **Property 13: Category Breakdown Accuracy**
     - **Validates: Requirements 5.2**
 
-- [x] 12. Implement responsive UI and navigation
-  - [x] 12.1 Create responsive layout and navigation
+- [x] 10. Implement responsive UI and navigation
+  - [x] 10.1 Create responsive layout and navigation
     - Implement mobile-first responsive design
     - Add navigation between expense entry, analytics, reminders, and settings
     - Create category hierarchy UI components
     - _Requirements: 8.3, 8.4, 8.5_
 
-  - [x] 12.2 Write unit tests for UI components
+  - [x] 10.2 Write unit tests for UI components
     - Test form validation and submission
     - Test navigation functionality
     - Test responsive behavior
     - _Requirements: 8.1, 8.2, 8.5_
 
-- [x] 13. Implement error handling and status display
-  - [x] 13.1 Add comprehensive error handling
+- [x] 11. Implement error handling and performance optimization
+  - [x] 11.1 Add comprehensive error handling
     - Implement GlobalExceptionHandler for API errors
     - Add frontend error handling and user feedback
-    - Create sync status display in UI
+    - Create performance monitoring and optimization
     - _Requirements: 7.3, 9.5_
 
-  - [x] 13.2 Write property test for sync status display
-    - **Property 23: Sync Status Display**
+  - [x] 11.2 Write property test for performance consistency
+    - **Property 18: Performance Consistency**
     - **Validates: Requirements 9.5**
 
-- [x] 14. Final integration and testing
-  - [x] 14.1 Wire all components together
+- [x] 12. Final integration and testing
+  - [x] 12.1 Wire all components together
     - Connect frontend to backend APIs
-    - Integrate Google Sheets with expense operations
-    - Test end-to-end expense creation and sync workflow
+    - Test end-to-end expense creation and storage workflow
+    - Integrate payment reminder system
     - _Requirements: All requirements integration_
 
-  - [x] 14.2 Write integration tests
-    - Test complete expense lifecycle (create, sync, view, update)
-    - Test offline-to-online transition scenarios
+  - [x] 12.2 Write integration tests
+    - Test complete expense lifecycle (create, store, view, update)
     - Test payment reminder workflow
+    - Test analytics and reporting functionality
     - _Requirements: All requirements integration_
 
-- [x] 15. Final checkpoint - Complete system validation
+- [x] 13. Final checkpoint - Complete system validation
   - Ensure all tests pass, ask the user if questions arise.
 
 
@@ -224,3 +199,4 @@ This implementation plan breaks down the expense tracking system into discrete c
 - Property tests validate universal correctness properties
 - Unit tests validate specific examples and edge cases
 - The implementation follows a backend-first approach, then frontend, then integration
+- Focus is on local data persistence and performance optimization

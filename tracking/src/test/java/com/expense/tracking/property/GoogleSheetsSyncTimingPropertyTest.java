@@ -39,7 +39,6 @@ public class GoogleSheetsSyncTimingPropertyTest {
                 .description(description)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .synced(false)
                 .build();
 
         // When: We simulate a sync operation timing
@@ -81,7 +80,6 @@ public class GoogleSheetsSyncTimingPropertyTest {
                 .description("Consistency test expense")
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .synced(false)
                 .build();
 
         // When: We perform multiple sync operations

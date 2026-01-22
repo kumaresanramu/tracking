@@ -142,7 +142,6 @@ public class MonthlyTrendVisualizationPropertyTest {
                 .date(data.date)
                 .category(category)
                 .description(data.description)
-                .synced(false)
                 .build();
     }
     

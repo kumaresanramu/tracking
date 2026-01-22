@@ -47,7 +47,6 @@ public class MonthlySheetOrganizationPropertyTest {
                 .description(description)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .synced(false)
                 .build();
 
         // When: We determine the monthly sheet name for this expense
@@ -220,7 +219,6 @@ public class MonthlySheetOrganizationPropertyTest {
                 .description("Test expense for " + year + "/" + month)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .synced(false)
                 .build();
     }
 }

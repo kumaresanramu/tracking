@@ -41,10 +41,6 @@ public class Expense {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean synced = false;
-    
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

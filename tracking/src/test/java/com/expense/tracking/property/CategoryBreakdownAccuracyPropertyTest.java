@@ -71,7 +71,6 @@ public class CategoryBreakdownAccuracyPropertyTest {
                             .date(expenseDate)
                             .category(category)
                             .description(data.description)
-                            .synced(false)
                             .build();
                 })
                 .collect(Collectors.toList());

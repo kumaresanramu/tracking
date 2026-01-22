@@ -23,9 +23,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     // Find expenses by category
     List<Expense> findByCategoryIdOrderByDateDesc(Long categoryId);
     
-    // Find unsynced expenses
-    List<Expense> findBySyncedFalseOrderByCreatedAtAsc();
-    
     // Find expenses by category and date range
     @Query("SELECT e FROM Expense e WHERE e.category.id = :categoryId AND e.date BETWEEN :startDate AND :endDate ORDER BY e.date DESC")
     List<Expense> findByCategoryAndDateRange(@Param("categoryId") Long categoryId, 

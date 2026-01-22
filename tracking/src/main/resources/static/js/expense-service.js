@@ -120,18 +120,22 @@ class ExpenseService {
 
     // Analytics operations
     async getMonthlyTrends(months = 12) {
+        console.log('ExpenseService: Getting monthly trends for', months, 'months');
         try {
             const response = await fetch(`${this.baseUrl}/analytics/monthly-trends?months=${months}`, {
                 headers: this.defaultHeaders
             });
 
+            console.log('ExpenseService: Monthly trends response status:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            console.log('ExpenseService: Monthly trends data:', data);
+            return data;
         } catch (error) {
-            console.error('Failed to get monthly trends:', error);
+            console.error('ExpenseService: Failed to get monthly trends:', error);
             throw error;
         }
     }
@@ -207,6 +211,42 @@ class ExpenseService {
         }
     }
 
+    async getReminderById(reminderId) {
+        try {
+            const response = await fetch(`${this.baseUrl}/reminders/${reminderId}`, {
+                headers: this.defaultHeaders
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Failed to get reminder by ID:', error);
+            throw error;
+        }
+    }
+
+    async updatePaymentReminder(reminderId, reminder) {
+        try {
+            const response = await fetch(`${this.baseUrl}/reminders/${reminderId}`, {
+                method: 'PUT',
+                headers: this.defaultHeaders,
+                body: JSON.stringify(reminder)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Failed to update payment reminder:', error);
+            throw error;
+        }
+    }
+
     async markReminderAsPaid(reminderId, expenseData) {
         try {
             const response = await fetch(`${this.baseUrl}/reminders/${reminderId}/mark-paid`, {
@@ -222,42 +262,6 @@ class ExpenseService {
             return await response.json();
         } catch (error) {
             console.error('Failed to mark reminder as paid:', error);
-            throw error;
-        }
-    }
-
-    // Sync status operations
-    async getSyncStatus() {
-        try {
-            const response = await fetch(`${this.baseUrl}/sync/status`, {
-                headers: this.defaultHeaders
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Failed to get sync status:', error);
-            throw error;
-        }
-    }
-
-    async triggerSync() {
-        try {
-            const response = await fetch(`${this.baseUrl}/sync/trigger`, {
-                method: 'POST',
-                headers: this.defaultHeaders
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Failed to trigger sync:', error);
             throw error;
         }
     }

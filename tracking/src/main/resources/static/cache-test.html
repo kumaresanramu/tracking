@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Cache Test</title>
+</head>
+<body>
+    <h1>Cache Test Page</h1>
+    <p>Generated at: <span id="timestamp"></span></p>
+    <p>If you see the same timestamp after refreshing, caching is still active.</p>
+    
+    <script>
+        document.getElementById('timestamp').textContent = new Date().toISOString();
+        console.log('Cache test loaded at:', new Date().toISOString());
+    </script>
+</body>
+</html>

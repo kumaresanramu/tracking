@@ -90,9 +90,43 @@ class UIComponents {
         const bodyElement = this.modalOverlay.querySelector('.modal-body');
 
         titleElement.textContent = title;
-        bodyElement.innerHTML = content;
+        
+        // Add form actions if provided
+        let modalContent = content;
+        if (options.onConfirm) {
+            modalContent += `
+                <div class="modal-actions">
+                    <button class="btn btn-primary modal-confirm-btn">${options.confirmText || 'Confirm'}</button>
+                    <button class="btn btn-secondary modal-cancel-btn">${options.cancelText || 'Cancel'}</button>
+                </div>
+            `;
+        }
+        
+        bodyElement.innerHTML = modalContent;
 
         this.modalOverlay.classList.add('active');
+
+        // Handle form actions
+        if (options.onConfirm) {
+            const confirmBtn = this.modalOverlay.querySelector('.modal-confirm-btn');
+            const cancelBtn = this.modalOverlay.querySelector('.modal-cancel-btn');
+
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', async () => {
+                    const result = await options.onConfirm();
+                    if (result !== false) { // Close modal unless explicitly prevented
+                        this.closeModal();
+                    }
+                });
+            }
+
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', () => {
+                    this.closeModal();
+                    if (options.onCancel) options.onCancel();
+                });
+            }
+        }
 
         // Handle options
         if (options.onClose) {
@@ -571,89 +605,6 @@ class UIComponents {
         setTimeout(() => {
             document.body.removeChild(announcement);
         }, 1000);
-    }
-
-    // Sync Status Display Component
-    renderSyncStatus(status, container) {
-        if (!container) return;
-
-        const statusInfo = this.getSyncStatusInfo(status);
-        
-        container.innerHTML = `
-            <div class="sync-status ${statusInfo.className}">
-                <div class="sync-indicator ${statusInfo.className}">
-                    <span class="sync-icon">${statusInfo.icon}</span>
-                </div>
-                <div class="sync-details">
-                    <div class="sync-text">${statusInfo.text}</div>
-                    <div class="sync-meta">${statusInfo.meta}</div>
-                </div>
-                ${statusInfo.showRetry ? '<button class="sync-retry-btn" title="Retry sync">↻</button>' : ''}
-            </div>
-        `;
-
-        // Add retry functionality
-        const retryBtn = container.querySelector('.sync-retry-btn');
-        if (retryBtn && window.app && window.app.syncService) {
-            retryBtn.addEventListener('click', () => {
-                window.app.syncService.triggerManualSync();
-            });
-        }
-    }
-
-    getSyncStatusInfo(status) {
-        const now = new Date();
-        
-        switch (status.state) {
-            case 'online':
-                return {
-                    className: 'online',
-                    icon: '●',
-                    text: 'Online',
-                    meta: status.lastSync ? `Last sync: ${this.formatRelativeTime(status.lastSync)}` : 'Ready to sync',
-                    showRetry: false
-                };
-            case 'offline':
-                return {
-                    className: 'offline',
-                    icon: '●',
-                    text: 'Offline',
-                    meta: status.pendingCount > 0 ? `${status.pendingCount} changes pending` : 'No pending changes',
-                    showRetry: false
-                };
-            case 'syncing':
-                return {
-                    className: 'syncing',
-                    icon: '↻',
-                    text: 'Syncing...',
-                    meta: status.progress ? `${status.progress}% complete` : 'Synchronizing data',
-                    showRetry: false
-                };
-            case 'error':
-                return {
-                    className: 'error',
-                    icon: '⚠',
-                    text: 'Sync Error',
-                    meta: status.errorMessage || 'Sync failed',
-                    showRetry: true
-                };
-            case 'success':
-                return {
-                    className: 'success',
-                    icon: '✓',
-                    text: 'Synced',
-                    meta: `${status.syncedCount || 0} items synced`,
-                    showRetry: false
-                };
-            default:
-                return {
-                    className: 'unknown',
-                    icon: '?',
-                    text: 'Unknown',
-                    meta: 'Status unknown',
-                    showRetry: false
-                };
-        }
     }
 
     // Enhanced Error Display Component

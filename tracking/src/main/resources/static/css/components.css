@@ -122,6 +122,30 @@
     color: #333;
 }
 
+.modal-body {
+    padding: 1rem 0;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.page-header h2 {
+    margin: 0;
+}
+
 /* Category Tree - Enhanced Mobile-First Design */
 .category-tree {
     list-style: none;
@@ -809,7 +833,6 @@ select:focus {
 @media print {
     .navbar,
     .nav-menu-toggle,
-    .sync-status,
     .expense-item-actions,
     .category-toggle,
     .btn,
@@ -834,89 +857,7 @@ select:focus {
     }
 }
 
-/* Sync Status Styles */
-.sync-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    transition: all 0.3s ease;
-}
-
-.sync-status.online {
-    background-color: #e8f5e8;
-    color: #2e7d32;
-    border: 1px solid #c8e6c9;
-}
-
-.sync-status.offline {
-    background-color: #fff3e0;
-    color: #f57c00;
-    border: 1px solid #ffcc02;
-}
-
-.sync-status.syncing {
-    background-color: #e3f2fd;
-    color: #1976d2;
-    border: 1px solid #bbdefb;
-}
-
-.sync-status.error {
-    background-color: #ffebee;
-    color: #d32f2f;
-    border: 1px solid #ffcdd2;
-}
-
-.sync-status.success {
-    background-color: #e8f5e8;
-    color: #2e7d32;
-    border: 1px solid #c8e6c9;
-}
-
-.sync-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 12px;
-    height: 12px;
-}
-
-.sync-indicator.syncing .sync-icon {
-    animation: spin 1s linear infinite;
-}
-
-.sync-details {
-    flex: 1;
-    min-width: 0;
-}
-
-.sync-text {
-    font-weight: 500;
-    line-height: 1.2;
-}
-
-.sync-meta {
-    font-size: 0.75rem;
-    opacity: 0.8;
-    margin-top: 2px;
-}
-
-.sync-retry-btn {
-    background: none;
-    border: none;
-    color: inherit;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    font-size: 1rem;
-    transition: background-color 0.2s ease;
-}
-
-.sync-retry-btn:hover {
-    background-color: rgba(0, 0, 0, 0.1);
-}
+/* Removed sync status styles - local-only operation */
 
 /* Error Message Styles */
 .error-message {
@@ -1187,36 +1128,11 @@ select:focus {
         margin-right: 16px;
     }
     
-    .sync-status {
-        font-size: 0.8125rem;
-        padding: 6px 10px;
-    }
+    /* Removed mobile sync-status styles - local-only operation */
 }
 
 /* Dark Theme Support */
-[data-theme="dark"] .sync-status.online {
-    background-color: #1b5e20;
-    color: #c8e6c9;
-    border-color: #2e7d32;
-}
-
-[data-theme="dark"] .sync-status.offline {
-    background-color: #e65100;
-    color: #ffcc02;
-    border-color: #f57c00;
-}
-
-[data-theme="dark"] .sync-status.syncing {
-    background-color: #0d47a1;
-    color: #bbdefb;
-    border-color: #1976d2;
-}
-
-[data-theme="dark"] .sync-status.error {
-    background-color: #b71c1c;
-    color: #ffcdd2;
-    border-color: #d32f2f;
-}
+/* Removed dark theme sync styles - local-only operation */
 
 [data-theme="dark"] .error-message.warning {
     background-color: #e65100;
@@ -1340,48 +1256,7 @@ select:focus {
     margin: 0;
 }
 
-/* Sync Status Components */
-.sync-status {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-}
-
-.sync-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.sync-indicator.online {
-    background-color: #4CAF50;
-}
-
-.sync-indicator.offline {
-    background-color: #F44336;
-}
-
-.sync-indicator.syncing {
-    background-color: #FF9800;
-    animation: pulse 1s infinite;
-}
-
-.sync-indicator.error {
-    background-color: #F44336;
-    animation: pulse 1s infinite;
-}
-
-.sync-indicator.success {
-    background-color: #4CAF50;
-}
-
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
+/* Removed sync status components - local-only operation */
 
 .connection-status {
     font-size: 0.75rem;
@@ -1459,4 +1334,52 @@ select:focus {
 
 .error-state-description {
     margin-bottom: 1.5rem;
+}
+/* Chart Controls */
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chart-controls label {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.month-selector {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    font-size: 0.9rem;
+    min-width: 120px;
+}
+
+.month-selector:focus {
+    outline: none;
+    border-color: #2196F3;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+/* Responsive chart controls */
+@media (max-width: 768px) {
+    .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .chart-controls {
+        width: 100%;
+        justify-content: flex-end;
+    }
 }

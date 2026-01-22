@@ -22,5 +22,4 @@ public class ExpenseResponse {
     private String description;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Boolean synced;
 }
