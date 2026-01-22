@@ -107,7 +107,7 @@ class ExpenseEntry {
 }
 ```
 
-#### 2. Analytics Dashboard
+#### 3. Analytics Dashboard
 ```javascript
 class AnalyticsDashboard {
     constructor() {
@@ -122,6 +122,58 @@ class AnalyticsDashboard {
     renderCategoryBreakdown(expenses) {
         // Create pie chart for categories
         // Show hierarchical breakdown
+    }
+    
+    renderMonthlyTrends(expenses) {
+        // Create line chart for monthly trends
+        // Support month selection
+    }
+}
+```
+
+#### 4. Enhanced Dashboard Component
+```javascript
+class EnhancedDashboard {
+    constructor() {
+        this.filterManager = new FilterManager();
+        this.budgetTracker = new BudgetTracker();
+        this.insightsGenerator = new InsightsGenerator();
+    }
+    
+    applyFilters(filters) {
+        // Filter expenses by date range, category, payment method, tags
+        // Update dashboard display
+    }
+    
+    generateQuickInsights(expenses) {
+        // Calculate top 3 categories, biggest expense, daily average
+        // Display smart highlights and recommendations
+    }
+    
+    trackBudgetProgress(monthlyBudget, currentSpending) {
+        // Show budget progress indicators
+        // Generate budget warnings and alerts
+    }
+}
+```
+
+#### 5. Theme Manager
+```javascript
+class ThemeManager {
+    constructor() {
+        this.currentTheme = 'light';
+        this.storageKey = 'expense-tracker-theme';
+    }
+    
+    async initializeTheme() {
+        // Load theme from IndexedDB
+        // Apply theme immediately
+    }
+    
+    switchTheme(theme) {
+        // Apply light or dark theme
+        // Persist preference to IndexedDB
+        // Update CSS variables
     }
 }
 ```
@@ -162,6 +214,13 @@ public class Expense {
     private Category category;
     
     private String description;
+    
+    @Column(name = "payment_method")
+    private String paymentMethod; // cash, card, upi, bank-transfer
+    
+    @Column(name = "tags")
+    private String tags; // Comma-separated values for multiple tags
+    
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     
@@ -441,3 +500,50 @@ The system will use both unit tests and property-based tests to ensure comprehen
 - Database integrity and constraint testing
 
 The testing strategy ensures both functional correctness through property-based testing and practical reliability through comprehensive unit and integration tests.
+### Property 19: Payment Method Storage and Retrieval
+*For any* expense with a payment method, storing the expense should preserve the payment method value and make it available for filtering and display.
+**Validates: Requirements 1.6**
+
+### Property 20: Tag Storage and Filtering
+*For any* expense with tags, the tags should be stored as comma-separated values and filtering by any tag should return all expenses containing that tag.
+**Validates: Requirements 1.7**
+
+### Property 21: Dashboard Insights Accuracy
+*For any* set of expenses, the dashboard quick insights should correctly calculate the top 3 spending categories, identify the biggest expense, and compute the accurate daily average.
+**Validates: Requirements 10.1**
+
+### Property 22: Multi-Criteria Filtering
+*For any* combination of filter criteria (date range, category, payment method, tags), applying filters should return exactly the expenses that match all specified criteria.
+**Validates: Requirements 10.2**
+
+### Property 23: Budget Progress Calculation
+*For any* monthly budget and set of expenses, the budget progress calculation should accurately reflect the percentage of budget used and remaining amount.
+**Validates: Requirements 10.3**
+
+### Property 24: Savings Goal Progress
+*For any* savings goal and spending pattern, the progress calculation should accurately show how spending affects progress toward the savings target.
+**Validates: Requirements 10.4**
+
+### Property 25: Budget Threshold Detection
+*For any* budget threshold and expense total, the system should correctly identify when spending exceeds the threshold and trigger appropriate warnings.
+**Validates: Requirements 10.5**
+
+### Property 26: Theme Preference Persistence
+*For any* theme selection, the preference should be stored persistently and restored correctly on subsequent application visits.
+**Validates: Requirements 11.2**
+
+### Property 27: Monthly Trend Data Accuracy
+*For any* set of expenses across multiple months, the monthly trend analytics should display accurate totals for each month.
+**Validates: Requirements 12.1**
+
+### Property 28: Dynamic Chart Data Updates
+*For any* month selection in analytics, the category breakdown should display data only for the selected month with accurate category totals.
+**Validates: Requirements 12.2**
+
+### Property 29: Payment Method and Tag Analysis
+*For any* set of expenses, payment method distribution and tag-based analysis should accurately reflect the proportions and frequencies in the data.
+**Validates: Requirements 12.3**
+
+### Property 30: Financial Metrics Calculation
+*For any* expense dataset, spending velocity, category trends, and budget performance metrics should be calculated accurately based on the underlying data.
+**Validates: Requirements 12.4**

@@ -1,5 +1,13 @@
 package com.expense.tracking.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.expense.tracking.dto.CategoryResponse;
 import com.expense.tracking.dto.ExpenseRequest;
 import com.expense.tracking.dto.ExpenseResponse;
@@ -9,16 +17,9 @@ import com.expense.tracking.exception.ResourceNotFoundException;
 import com.expense.tracking.exception.ValidationException;
 import com.expense.tracking.repository.CategoryRepository;
 import com.expense.tracking.repository.ExpenseRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +46,8 @@ public class ExpenseService {
                 .date(request.getDate())
                 .category(category)
                 .description(request.getDescription())
+                .paymentMethod(request.getPaymentMethod())
+                .tags(request.getTags())
                 .build();
         
         // Save expense
@@ -88,6 +91,8 @@ public class ExpenseService {
         expense.setDate(request.getDate());
         expense.setCategory(category);
         expense.setDescription(request.getDescription());
+        expense.setPaymentMethod(request.getPaymentMethod());
+        expense.setTags(request.getTags());
         
         Expense updatedExpense = expenseRepository.save(expense);
         log.info("Updated expense with id: {}", updatedExpense.getId());
@@ -155,6 +160,8 @@ public class ExpenseService {
                 .date(expense.getDate())
                 .category(categoryResponse)
                 .description(expense.getDescription())
+                .paymentMethod(expense.getPaymentMethod())
+                .tags(expense.getTags())
                 .createdAt(expense.getCreatedAt())
                 .updatedAt(expense.getUpdatedAt())
                 .build();

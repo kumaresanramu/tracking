@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "com.expense.tracking.controller")
 @Slf4j
 public class GlobalExceptionHandler {
     

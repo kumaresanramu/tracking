@@ -12,20 +12,28 @@ A Progressive Web Application (PWA) for personal expense tracking that provides 
 - **Expense_Category**: Hierarchical classification system for expenses
 - **Monthly_Report**: Aggregated expense data for a specific month
 - **Chart_Visualizer**: Component responsible for generating visual analytics
+- **Dashboard_Filter**: System for filtering expenses by various criteria
+- **Budget_Tracker**: Component for tracking spending against set budgets
+- **Theme_Manager**: System for managing light/dark theme preferences
+- **Smart_Insights**: Automated analysis and recommendations based on spending patterns
+- **Payment_Method**: Classification of how expenses were paid (cash, card, UPI, etc.)
+- **Expense_Tags**: User-defined labels for categorizing and filtering expenses
 
 ## Requirements
 
 ### Requirement 1: Expense Data Management
 
-**User Story:** As a user, I want to record and manage my expenses with detailed categorization, so that I can track my spending patterns effectively.
+**User Story:** As a user, I want to record and manage my expenses with detailed categorization, payment methods, and tags, so that I can track my spending patterns effectively.
 
 #### Acceptance Criteria
 
-1. WHEN a user creates a new expense record, THE Expense_Tracker SHALL store the expense with date, amount, category, subcategory, and description
+1. WHEN a user creates a new expense record, THE Expense_Tracker SHALL store the expense with date, amount, category, subcategory, description, payment method, and tags
 2. WHEN a user selects an expense category, THE Expense_Tracker SHALL display relevant subcategories if they exist
 3. WHEN a user views expenses, THE Expense_Tracker SHALL organize them by month and category hierarchy
 4. WHEN an expense is created, THE Expense_Tracker SHALL immediately store the data in the local database
 5. THE Expense_Tracker SHALL support both main categories (like Food) and hierarchical categories (like House Construction > Wire, Tiles, Painting)
+6. WHEN a user adds payment method information, THE Expense_Tracker SHALL store and display payment methods (cash, card, UPI, bank transfer)
+7. WHEN a user adds tags to an expense, THE Expense_Tracker SHALL store multiple tags as comma-separated values and allow filtering by tags
 
 ### Requirement 2: Local Data Storage
 
@@ -113,14 +121,78 @@ A Progressive Web Application (PWA) for personal expense tracking that provides 
 6. THE UI SHALL use modern web technologies (HTML5, CSS3, JavaScript) optimized for PWA performance
 7. WHEN displaying charts and analytics, THE UI SHALL present data in an easy-to-understand visual format
 
-### Requirement 9: Data Persistence and Performance
+### Requirement 10: Enhanced Dashboard and Filtering
 
-**User Story:** As a user, I want fast and reliable data storage, so that my expense data is always available and the application performs well.
+**User Story:** As a user, I want an enhanced dashboard with comprehensive filtering, budget tracking, and smart insights, so that I can quickly understand my spending patterns and manage my finances effectively.
 
 #### Acceptance Criteria
 
-1. WHEN the application processes expense operations, THE Expense_Tracker SHALL store data locally with immediate persistence
-2. WHEN data conflicts occur, THE Expense_Tracker SHALL maintain data integrity using database constraints
-3. WHEN operations fail, THE Expense_Tracker SHALL provide clear error messages and maintain data consistency
-4. THE Expense_Tracker SHALL maintain a local database of all expense data for fast retrieval
-5. WHEN processing large amounts of data, THE Expense_Tracker SHALL maintain responsive performance
+1. WHEN a user views the dashboard, THE Expense_Tracker SHALL display quick insights including top 3 spending categories, biggest expense, and daily average
+2. WHEN a user applies filters, THE Expense_Tracker SHALL filter expenses by date range, category, payment method, and tags
+3. WHEN a user sets a monthly budget, THE Expense_Tracker SHALL track spending against the budget and show progress indicators
+4. WHEN a user sets savings goals, THE Expense_Tracker SHALL display progress toward those goals
+5. WHEN expenses exceed budget thresholds, THE Expense_Tracker SHALL highlight budget warnings and overspending alerts
+6. THE Expense_Tracker SHALL provide interactive actions like quick expense entry and export functionality
+7. WHEN a user selects custom date ranges, THE Expense_Tracker SHALL allow precise date range selection with calendar pickers
+
+### Requirement 11: Theme and Personalization
+
+**User Story:** As a user, I want to customize the application appearance with themes and personal preferences, so that I can use the app comfortably in different environments.
+
+#### Acceptance Criteria
+
+1. WHEN a user selects a theme, THE Expense_Tracker SHALL apply light or dark theme consistently across all pages
+2. WHEN a theme is changed, THE Expense_Tracker SHALL persist the theme preference and apply it on subsequent visits
+3. THE Expense_Tracker SHALL provide smooth theme transitions without jarring visual changes
+4. WHEN using dark theme, THE Expense_Tracker SHALL ensure all text remains readable with appropriate contrast ratios
+5. THE Expense_Tracker SHALL apply theme preferences immediately without requiring page refresh
+
+### Requirement 12: Advanced Analytics and Insights
+
+**User Story:** As a user, I want advanced analytics with interactive charts and detailed insights, so that I can make informed financial decisions based on comprehensive data analysis.
+
+#### Acceptance Criteria
+
+1. WHEN a user views analytics, THE Expense_Tracker SHALL display monthly trends with interactive line charts
+2. WHEN a user selects different months, THE Expense_Tracker SHALL update category breakdown charts dynamically
+3. WHEN displaying spending patterns, THE Expense_Tracker SHALL show payment method distribution and tag-based analysis
+4. THE Expense_Tracker SHALL calculate and display spending velocity, category trends, and budget performance metrics
+5. WHEN generating insights, THE Expense_Tracker SHALL identify spending anomalies and provide actionable recommendations
+
+### Requirement 10: Enhanced Dashboard and Filtering
+
+**User Story:** As a user, I want an enhanced dashboard with comprehensive filtering, budget tracking, and smart insights, so that I can quickly understand my spending patterns and manage my finances effectively.
+
+#### Acceptance Criteria
+
+1. WHEN a user views the dashboard, THE Expense_Tracker SHALL display quick insights including top 3 spending categories, biggest expense, and daily average
+2. WHEN a user applies filters, THE Expense_Tracker SHALL filter expenses by date range, category, payment method, and tags
+3. WHEN a user sets a monthly budget, THE Expense_Tracker SHALL track spending against the budget and show progress indicators
+4. WHEN a user sets savings goals, THE Expense_Tracker SHALL display progress toward those goals
+5. WHEN expenses exceed budget thresholds, THE Expense_Tracker SHALL highlight budget warnings and overspending alerts
+6. THE Expense_Tracker SHALL provide interactive actions like quick expense entry and export functionality
+7. WHEN a user selects custom date ranges, THE Expense_Tracker SHALL allow precise date range selection with calendar pickers
+
+### Requirement 11: Theme and Personalization
+
+**User Story:** As a user, I want to customize the application appearance with themes and personal preferences, so that I can use the app comfortably in different environments.
+
+#### Acceptance Criteria
+
+1. WHEN a user selects a theme, THE Expense_Tracker SHALL apply light or dark theme consistently across all pages
+2. WHEN a theme is changed, THE Expense_Tracker SHALL persist the theme preference and apply it on subsequent visits
+3. THE Expense_Tracker SHALL provide smooth theme transitions without jarring visual changes
+4. WHEN using dark theme, THE Expense_Tracker SHALL ensure all text remains readable with appropriate contrast ratios
+5. THE Expense_Tracker SHALL apply theme preferences immediately without requiring page refresh
+
+### Requirement 12: Advanced Analytics and Insights
+
+**User Story:** As a user, I want advanced analytics with interactive charts and detailed insights, so that I can make informed financial decisions based on comprehensive data analysis.
+
+#### Acceptance Criteria
+
+1. WHEN a user views analytics, THE Expense_Tracker SHALL display monthly trends with interactive line charts
+2. WHEN a user selects different months, THE Expense_Tracker SHALL update category breakdown charts dynamically
+3. WHEN displaying spending patterns, THE Expense_Tracker SHALL show payment method distribution and tag-based analysis
+4. THE Expense_Tracker SHALL calculate and display spending velocity, category trends, and budget performance metrics
+5. WHEN generating insights, THE Expense_Tracker SHALL identify spending anomalies and provide actionable recommendations

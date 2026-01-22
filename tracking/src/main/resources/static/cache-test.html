@@ -5,16 +5,207 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Cache Test</title>
+    <title>Cache Test - Expense Tracker</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-item { margin: 10px 0; padding: 10px; border-radius: 4px; border: 1px solid #ddd; }
+        .pass { background: #e8f5e8; border-color: #4caf50; }
+        .fail { background: #f8d7da; border-color: #dc3545; }
+        .version { font-family: monospace; background: #f5f5f5; padding: 2px 4px; }
+        button { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-success { background: #28a745; color: white; }
+    </style>
 </head>
 <body>
-    <h1>Cache Test Page</h1>
-    <p>Generated at: <span id="timestamp"></span></p>
-    <p>If you see the same timestamp after refreshing, caching is still active.</p>
+    <h1>Cache Test - Expense Tracker</h1>
+    <p>This page helps diagnose cache issues. Current time: <span id="current-time"></span></p>
+    
+    <div class="test-item">
+        <h3>Expected Version</h3>
+        <p>Expected app version: <span class="version">20260122161500</span></p>
+        <p>Page loaded at: <span class="version" id="page-load-time"></span></p>
+    </div>
+    
+    <div id="version-test" class="test-item">
+        <h3>Version Check</h3>
+        <p>Loading JavaScript files to check versions...</p>
+    </div>
+    
+    <div class="test-item">
+        <h3>Cache Control</h3>
+        <button class="btn-danger" onclick="aggressiveCacheClear()">Aggressive Cache Clear</button>
+        <button class="btn-primary" onclick="window.location.reload(true)">Hard Refresh</button>
+        <button class="btn-success" onclick="window.location.href='/'">Go to App</button>
+    </div>
+    
+    <div class="test-item">
+        <h3>Browser Info</h3>
+        <p><strong>User Agent:</strong> <span id="user-agent"></span></p>
+        <p><strong>Cache API:</strong> <span id="cache-api"></span></p>
+        <p><strong>Service Worker:</strong> <span id="service-worker"></span></p>
+        <p><strong>IndexedDB:</strong> <span id="indexeddb"></span></p>
+    </div>
+    
+    <div class="test-item">
+        <h3>Network Requests</h3>
+        <div id="network-tests"></div>
+    </div>
+    
+    <!-- Load the app scripts to test versions -->
+    <script src="/js/error-handler.js?nocache=20260122161500&force=reload&test=true"></script>
+    <script src="/js/expense-service.js?nocache=20260122161500&force=reload&test=true"></script>
+    <script src="/js/analytics.js?nocache=20260122161500&force=reload&test=true"></script>
+    <script src="/js/ui-components.js?nocache=20260122161500&force=reload&test=true"></script>
+    <script src="/js/app.js?nocache=20260122161500&force=reload&test=true"></script>
     
     <script>
-        document.getElementById('timestamp').textContent = new Date().toISOString();
-        console.log('Cache test loaded at:', new Date().toISOString());
+        const expectedVersion = '20260122161500';
+        
+        // Update current time
+        document.getElementById('current-time').textContent = new Date().toISOString();
+        document.getElementById('page-load-time').textContent = new Date().toISOString();
+        
+        // Browser info
+        document.getElementById('user-agent').textContent = navigator.userAgent;
+        document.getElementById('cache-api').textContent = 'caches' in window ? 'Supported' : 'Not supported';
+        document.getElementById('service-worker').textContent = 'serviceWorker' in navigator ? 'Supported' : 'Not supported';
+        document.getElementById('indexeddb').textContent = 'indexedDB' in window ? 'Supported' : 'Not supported';
+        
+        // Version check
+        setTimeout(() => {
+            const versionTest = document.getElementById('version-test');
+            let allGood = true;
+            let results = [];
+            
+            // Check if classes loaded
+            if (typeof ErrorHandler !== 'undefined') {
+                results.push('✅ ErrorHandler loaded');
+            } else {
+                results.push('❌ ErrorHandler not loaded');
+                allGood = false;
+            }
+            
+            if (typeof ExpenseService !== 'undefined') {
+                results.push('✅ ExpenseService loaded');
+            } else {
+                results.push('❌ ExpenseService not loaded');
+                allGood = false;
+            }
+            
+            if (typeof Analytics !== 'undefined') {
+                const analytics = new Analytics();
+                if (analytics.version === expectedVersion) {
+                    results.push('✅ Analytics version correct: ' + analytics.version);
+                } else {
+                    results.push('❌ Analytics version wrong: ' + (analytics.version || 'undefined') + ' (expected: ' + expectedVersion + ')');
+                    allGood = false;
+                }
+            } else {
+                results.push('❌ Analytics not loaded');
+                allGood = false;
+            }
+            
+            if (typeof UIComponents !== 'undefined') {
+                results.push('✅ UIComponents loaded');
+            } else {
+                results.push('❌ UIComponents not loaded');
+                allGood = false;
+            }
+            
+            if (typeof ExpenseTrackerApp !== 'undefined') {
+                results.push('✅ ExpenseTrackerApp loaded');
+            } else {
+                results.push('❌ ExpenseTrackerApp not loaded');
+                allGood = false;
+            }
+            
+            versionTest.className = 'test-item ' + (allGood ? 'pass' : 'fail');
+            versionTest.innerHTML = '<h3>Version Check</h3><ul><li>' + results.join('</li><li>') + '</li></ul>';
+        }, 1000);
+        
+        // Network tests
+        async function testNetworkRequests() {
+            const networkTests = document.getElementById('network-tests');
+            const tests = [
+                '/api/categories',
+                '/js/app.js?nocache=' + expectedVersion,
+                '/css/styles.css?nocache=' + expectedVersion
+            ];
+            
+            const results = [];
+            
+            for (const url of tests) {
+                try {
+                    const response = await fetch(url, { 
+                        cache: 'no-cache',
+                        headers: { 'Cache-Control': 'no-cache' }
+                    });
+                    if (response.ok) {
+                        results.push(`✅ ${url} - ${response.status}`);
+                    } else {
+                        results.push(`❌ ${url} - ${response.status}`);
+                    }
+                } catch (error) {
+                    results.push(`❌ ${url} - Error: ${error.message}`);
+                }
+            }
+            
+            networkTests.innerHTML = '<ul><li>' + results.join('</li><li>') + '</li></ul>';
+        }
+        
+        testNetworkRequests();
+        
+        async function aggressiveCacheClear() {
+            const button = event.target;
+            button.textContent = 'Clearing...';
+            button.disabled = true;
+            
+            try {
+                // Clear all caches
+                if ('caches' in window) {
+                    const names = await caches.keys();
+                    console.log('Clearing caches:', names);
+                    await Promise.all(names.map(name => caches.delete(name)));
+                }
+                
+                // Clear storage
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Clear IndexedDB
+                if ('indexedDB' in window) {
+                    await new Promise((resolve) => {
+                        const deleteReq = indexedDB.deleteDatabase('ExpenseTrackerDB');
+                        deleteReq.onsuccess = resolve;
+                        deleteReq.onerror = resolve;
+                        setTimeout(resolve, 2000); // Timeout
+                    });
+                }
+                
+                // Unregister service workers
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(registrations.map(reg => reg.unregister()));
+                }
+                
+                button.textContent = 'Reloading...';
+                
+                // Force reload
+                const url = new URL(window.location.origin);
+                url.searchParams.set('v', expectedVersion);
+                url.searchParams.set('cb', Date.now());
+                url.searchParams.set('nocache', 'true');
+                
+                window.location.replace(url.href);
+                
+            } catch (error) {
+                console.error('Cache clear error:', error);
+                button.textContent = 'Error - Try Again';
+                button.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>

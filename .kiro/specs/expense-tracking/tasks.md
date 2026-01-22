@@ -187,8 +187,60 @@ This implementation plan breaks down the expense tracking system into discrete c
     - Test analytics and reporting functionality
     - _Requirements: All requirements integration_
 
-- [x] 13. Final checkpoint - Complete system validation
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 14. Implement enhanced dashboard features
+  - [x] 14.1 Add payment method and tags to expense entity
+    - Update Expense entity with paymentMethod and tags fields
+    - Update ExpenseRequest and ExpenseResponse DTOs
+    - Modify ExpenseService to handle new fields
+    - _Requirements: 1.6, 1.7_
+
+  - [x] 14.2 Implement dashboard filtering system
+    - Create comprehensive filter UI with date range, category, payment method, and tags
+    - Implement filter logic in frontend and backend
+    - Add custom date range picker functionality
+    - _Requirements: 10.2, 10.7_
+
+  - [x] 14.3 Add budget tracking and insights
+    - Implement budget setting and progress tracking
+    - Create quick insights calculation (top categories, biggest expense, daily average)
+    - Add savings goal tracking functionality
+    - _Requirements: 10.1, 10.3, 10.4, 10.5_
+
+  - [x] 14.4 Write property tests for enhanced dashboard
+    - **Property 21: Dashboard Insights Accuracy**
+    - **Property 22: Multi-Criteria Filtering**
+    - **Property 23: Budget Progress Calculation**
+    - **Validates: Requirements 10.1, 10.2, 10.3**
+
+- [x] 15. Implement theme management system
+  - [x] 15.1 Create theme management functionality
+    - Implement light and dark theme CSS variables
+    - Create ThemeManager class for theme switching
+    - Add theme persistence to IndexedDB
+    - _Requirements: 11.1, 11.2, 11.5_
+
+  - [x] 15.2 Write property test for theme persistence
+    - **Property 26: Theme Preference Persistence**
+    - **Validates: Requirements 11.2**
+
+- [x] 16. Enhance analytics with advanced features
+  - [x] 16.1 Implement advanced analytics calculations
+    - Add payment method distribution analysis
+    - Implement tag-based spending analysis
+    - Create spending velocity and trend calculations
+    - _Requirements: 12.3, 12.4_
+
+  - [x] 16.2 Enhance chart interactivity
+    - Add month selector to category breakdown
+    - Improve chart responsiveness and data updates
+    - Implement dynamic chart data loading
+    - _Requirements: 12.1, 12.2_
+
+  - [x] 16.3 Write property tests for advanced analytics
+    - **Property 27: Monthly Trend Data Accuracy**
+    - **Property 28: Dynamic Chart Data Updates**
+    - **Property 29: Payment Method and Tag Analysis**
+    - **Validates: Requirements 12.1, 12.2, 12.3**
 
 
 ## Notes
@@ -200,3 +252,35 @@ This implementation plan breaks down the expense tracking system into discrete c
 - Unit tests validate specific examples and edge cases
 - The implementation follows a backend-first approach, then frontend, then integration
 - Focus is on local data persistence and performance optimization
+- [x] 17. Final system integration and optimization
+  - [x] 17.1 Integrate all enhanced features
+    - Connect enhanced dashboard with backend APIs
+    - Ensure theme management works across all pages
+    - Integrate advanced analytics with filtering system
+    - _Requirements: All enhanced requirements integration_
+
+  - [x] 17.2 Optimize performance and user experience
+    - Implement aggressive cache-busting for browser compatibility
+    - Optimize JavaScript loading and execution
+    - Ensure responsive design works across all devices
+    - _Requirements: 4.3, 8.4, 9.5_
+
+  - [x] 17.3 Write comprehensive integration tests
+    - Test complete enhanced dashboard workflow
+    - Test theme switching and persistence
+    - Test advanced analytics with real data
+    - _Requirements: All enhanced requirements integration_
+
+- [x] 18. Final checkpoint - Enhanced system validation
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Notes
+
+- All tasks are marked as completed to reflect current implementation status
+- Each task references specific requirements for traceability
+- Checkpoints ensure incremental validation at key milestones
+- Property tests validate universal correctness properties for new features
+- Unit tests validate specific examples and edge cases
+- The implementation includes comprehensive enhancements beyond the original scope
+- Focus remains on local data persistence and performance optimization
+- Enhanced features include advanced filtering, budget tracking, theme management, and analytics

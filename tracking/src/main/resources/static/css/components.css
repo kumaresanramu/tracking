@@ -427,35 +427,62 @@
 .expense-item-actions {
     display: flex;
     gap: 0.5rem;
-    opacity: 0;
+    opacity: 1 !important;
+    visibility: visible !important;
     transition: opacity 0.2s;
 }
 
 .expense-item:hover .expense-item-actions {
-    opacity: 1;
+    opacity: 1 !important;
 }
 
 .expense-item-actions button {
     background: none;
-    border: none;
+    border: 1px solid transparent;
     cursor: pointer;
-    padding: 0.25rem;
-    border-radius: 4px;
-    color: #666;
-    transition: background-color 0.2s;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    min-width: 70px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    color: white;
 }
 
 .expense-item-actions button:hover {
-    background-color: #f5f5f5;
-    color: #333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.expense-item-actions .edit-btn:hover {
-    color: #2196F3;
+.expense-item-actions .edit-btn,
+.expense-item-actions button.btn-edit {
+    background: var(--warning-color, #ff9800);
+    border-color: var(--warning-color, #ff9800);
+    color: white;
 }
 
-.expense-item-actions .delete-btn:hover {
-    color: #F44336;
+.expense-item-actions .edit-btn:hover,
+.expense-item-actions button.btn-edit:hover {
+    background: #e68900;
+    border-color: #e68900;
+}
+
+.expense-item-actions .delete-btn,
+.expense-item-actions button.btn-delete {
+    background: var(--error-color, #f44336);
+    border-color: var(--error-color, #f44336);
+    color: white;
+}
+
+.expense-item-actions .delete-btn:hover,
+.expense-item-actions button.btn-delete:hover {
+    background: #d32f2f;
+    border-color: #d32f2f;
 }
 
 /* Analytics Enhancements */

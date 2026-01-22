@@ -1,11 +1,14 @@
 // Analytics - Handles chart generation and data visualization
 class Analytics {
     constructor() {
+        this.version = '20260122160000'; // Version identifier for cache detection
         this.monthlyTrendsChart = null;
         this.categoryBreakdownChart = null;
         this.expenseService = new ExpenseService();
         this.selectedYear = new Date().getFullYear();
         this.selectedMonth = new Date().getMonth() + 1;
+        
+        console.log('ANALYTICS VERSION:', this.version);
     }
 
     async loadCharts() {
@@ -261,9 +264,9 @@ class Analytics {
 
     async loadExpenseSummary() {
         try {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth() + 1;
+            // Use selected year and month instead of current date
+            const year = this.selectedYear;
+            const month = this.selectedMonth;
             
             let summaryData;
             
@@ -750,11 +753,37 @@ class Analytics {
             
             // Reload category breakdown chart with new month
             this.loadCategoryBreakdownChart();
+            
+            // Update expense summary for the selected month
+            this.loadExpenseSummary();
         });
     }
 
     // Update category breakdown chart for selected month
     async updateCategoryBreakdownChart() {
         await this.loadCategoryBreakdownChart();
+    }
+
+    // Get expenses for the currently selected month (for export functionality)
+    async getSelectedMonthExpenses() {
+        try {
+            if (navigator.onLine) {
+                const response = await fetch(`/api/expenses/month/${this.selectedYear}/${this.selectedMonth}`);
+                if (response.ok) {
+                    return await response.json();
+                }
+            }
+            
+            // Fallback to local data
+            const expenses = await this.getExpensesFromIndexedDB();
+            return expenses.filter(expense => {
+                const expenseDate = new Date(expense.date);
+                return expenseDate.getFullYear() === this.selectedYear && 
+                       expenseDate.getMonth() === this.selectedMonth - 1;
+            });
+        } catch (error) {
+            console.error('Failed to get selected month expenses:', error);
+            return [];
+        }
     }
 }

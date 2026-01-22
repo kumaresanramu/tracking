@@ -12,16 +12,17 @@
     <meta name="theme-color" content="#2196F3">
     <meta name="description" content="Personal expense tracking with Google Sheets integration">
     <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     
     <!-- Apple PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Expense Tracker">
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.svg">
     
     <!-- Styles -->
-    <link rel="stylesheet" href="/css/styles.css?v=3.0&cache=bust&t=20260122145900">
-    <link rel="stylesheet" href="/css/components.css?v=3.0&cache=bust&t=20260122145900">
+    <link rel="stylesheet" href="/css/styles.css?nocache=20260122160000&force=reload">
+    <link rel="stylesheet" href="/css/components.css?nocache=20260122160000&force=reload">
     
     <!-- Chart.js for analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -55,30 +56,173 @@
             <!-- Dashboard Page -->
             <div id="dashboard-page" class="page active">
                 <div class="dashboard-container">
-                    <div class="quick-stats">
-                        <div class="stat-card">
-                            <h3>This Month</h3>
-                            <p class="stat-value" id="monthly-total">$0.00</p>
+                    <!-- Filters & Custom Views -->
+                    <div class="dashboard-filters">
+                        <div class="filter-group">
+                            <label for="date-range-filter">Date Range:</label>
+                            <select id="date-range-filter" class="filter-select">
+                                <option value="this-month">This Month</option>
+                                <option value="last-7-days">Last 7 Days</option>
+                                <option value="last-30-days">Last 30 Days</option>
+                                <option value="last-3-months">Last 3 Months</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
                         </div>
-                        <div class="stat-card">
-                            <h3>Last 7 Days</h3>
-                            <p class="stat-value" id="weekly-total">$0.00</p>
+                        <div class="filter-group">
+                            <label for="category-filter">Category:</label>
+                            <select id="category-filter" class="filter-select">
+                                <option value="all">All Categories</option>
+                                <!-- Categories will be populated dynamically -->
+                            </select>
                         </div>
-                        <div class="stat-card">
-                            <h3>Total Expenses</h3>
-                            <p class="stat-value" id="total-count">0</p>
+                        <div class="filter-group">
+                            <label for="payment-method-filter">Payment Method:</label>
+                            <select id="payment-method-filter" class="filter-select">
+                                <option value="all">All Methods</option>
+                                <option value="cash">Cash</option>
+                                <option value="card">Card</option>
+                                <option value="upi">UPI</option>
+                                <option value="bank-transfer">Bank Transfer</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="tag-filter">Tags:</label>
+                            <select id="tag-filter" class="filter-select">
+                                <option value="all">All Tags</option>
+                                <option value="work">Work</option>
+                                <option value="personal">Personal</option>
+                                <option value="family">Family</option>
+                                <option value="health">Health</option>
+                            </select>
                         </div>
                     </div>
-                    
-                    <div class="quick-actions">
-                        <button class="btn btn-primary" id="quick-add-expense">+ Add Expense</button>
-                        <button class="btn btn-secondary" id="view-analytics">View Analytics</button>
+
+                    <!-- Custom Date Range Picker (Hidden by default) -->
+                    <div id="custom-date-range" class="custom-date-range" style="display: none;">
+                        <div class="date-inputs">
+                            <div class="date-input-group">
+                                <label for="start-date">From:</label>
+                                <input type="date" id="start-date" name="startDate">
+                            </div>
+                            <div class="date-input-group">
+                                <label for="end-date">To:</label>
+                                <input type="date" id="end-date" name="endDate">
+                            </div>
+                            <button type="button" id="apply-date-range" class="btn btn-primary btn-small">Apply</button>
+                        </div>
                     </div>
-                    
-                    <div class="recent-expenses">
-                        <h3>Recent Expenses</h3>
-                        <div id="recent-expenses-list" class="expense-list">
-                            <!-- Recent expenses will be populated here -->
+
+                    <!-- Quick Insights -->
+                    <div class="quick-insights">
+                        <h2>Quick Insights</h2>
+                        <div class="insights-grid">
+                            <div class="insight-card">
+                                <div class="insight-icon">📊</div>
+                                <div class="insight-content">
+                                    <h3>Top 3 Categories</h3>
+                                    <div id="top-categories-list" class="top-categories">
+                                        <!-- Top categories will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="insight-card">
+                                <div class="insight-icon">💰</div>
+                                <div class="insight-content">
+                                    <h3>Biggest Expense</h3>
+                                    <div id="biggest-expense" class="biggest-expense">
+                                        <div class="expense-amount">$0.00</div>
+                                        <div class="expense-details">No expenses yet</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="insight-card">
+                                <div class="insight-icon">📈</div>
+                                <div class="insight-content">
+                                    <h3>Daily Average</h3>
+                                    <div id="daily-average" class="daily-average">
+                                        <div class="average-amount">$0.00</div>
+                                        <div class="average-period">per day</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Budget Tracking -->
+                    <div class="budget-tracking">
+                        <h2>Budget Overview</h2>
+                        <div class="budget-cards">
+                            <div class="budget-card">
+                                <div class="budget-header">
+                                    <h3>Monthly Budget</h3>
+                                    <button id="set-budget-btn" class="btn btn-small btn-secondary">Set Budget</button>
+                                </div>
+                                <div class="budget-progress">
+                                    <div class="progress-bar">
+                                        <div id="budget-progress-fill" class="progress-fill" style="width: 0%"></div>
+                                    </div>
+                                    <div class="budget-info">
+                                        <span id="budget-spent">$0</span> of <span id="budget-total">$0</span>
+                                        <span id="budget-percentage" class="budget-percentage">0%</span>
+                                    </div>
+                                </div>
+                                <div id="budget-status" class="budget-status"></div>
+                            </div>
+                            
+                            <div class="budget-card">
+                                <div class="budget-header">
+                                    <h3>Savings Goal</h3>
+                                    <button id="set-goal-btn" class="btn btn-small btn-secondary">Set Goal</button>
+                                </div>
+                                <div class="savings-progress">
+                                    <div class="progress-bar">
+                                        <div id="savings-progress-fill" class="progress-fill savings" style="width: 0%"></div>
+                                    </div>
+                                    <div class="savings-info">
+                                        <span id="savings-amount">$0</span> saved towards <span id="savings-goal">$0</span>
+                                    </div>
+                                </div>
+                                <div id="savings-status" class="savings-status"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Smart Highlights -->
+                    <div class="smart-highlights">
+                        <h2>Smart Highlights</h2>
+                        <div id="highlights-list" class="highlights-list">
+                            <!-- Smart highlights will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Interactive Actions -->
+                    <div class="interactive-actions">
+                        <div class="action-cards">
+                            <div class="action-card primary" id="quick-add-expense">
+                                <div class="action-icon">➕</div>
+                                <div class="action-content">
+                                    <h3>Add Expense</h3>
+                                    <p>Quick entry with category icons</p>
+                                </div>
+                            </div>
+                            
+                            <div class="action-card secondary" id="view-analytics">
+                                <div class="action-icon">📊</div>
+                                <div class="action-content">
+                                    <h3>View Analytics</h3>
+                                    <p>Detailed reports & export options</p>
+                                </div>
+                            </div>
+                            
+                            <div class="action-card tertiary" id="export-data">
+                                <div class="action-icon">📄</div>
+                                <div class="action-content">
+                                    <h3>Export Data</h3>
+                                    <p>Download CSV or PDF reports</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -111,6 +255,30 @@
                                     <option value="">Select a category</option>
                                     <!-- Categories will be populated dynamically -->
                                 </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="expense-payment-method">Payment Method</label>
+                                <select id="expense-payment-method" name="paymentMethod" required>
+                                    <option value="">Select payment method</option>
+                                    <option value="cash">💵 Cash</option>
+                                    <option value="card">💳 Card</option>
+                                    <option value="upi">📱 UPI</option>
+                                    <option value="bank-transfer">🏦 Bank Transfer</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="expense-tags">Tags</label>
+                                <select id="expense-tags" name="tags" multiple>
+                                    <option value="work">💼 Work</option>
+                                    <option value="personal">👤 Personal</option>
+                                    <option value="family">👨‍👩‍👧‍👦 Family</option>
+                                    <option value="health">🏥 Health</option>
+                                    <option value="education">📚 Education</option>
+                                    <option value="entertainment">🎬 Entertainment</option>
+                                </select>
+                                <small>Hold Ctrl/Cmd to select multiple tags</small>
                             </div>
                             
                             <div class="form-actions">
@@ -196,11 +364,94 @@
     </div>
 
     <!-- Scripts -->
-    <script src="/js/error-handler.js?v=3.0&cache=bust&t=20260122145900"></script>
-    <script src="/js/expense-service.js?v=3.0&cache=bust&t=20260122145900"></script>
-    <script src="/js/analytics.js?v=3.0&cache=bust&t=20260122145900"></script>
-    <script src="/js/ui-components.js?v=3.0&cache=bust&t=20260122145900"></script>
-    <script src="/js/app.js?v=3.0&cache=bust&t=20260122145900"></script>
+    <script src="/js/error-handler.js?nocache=20260122160000&force=reload"></script>
+    <script src="/js/expense-service.js?nocache=20260122160000&force=reload"></script>
+    <script src="/js/analytics.js?nocache=20260122160000&force=reload"></script>
+    <script src="/js/ui-components.js?nocache=20260122160000&force=reload"></script>
+    <script src="/js/app.js?nocache=20260122161500&force=reload"></script>
+
+    <!-- Cache Detection and Force Reload Script -->
+    <script>
+        // Force reload if old cached versions are detected
+        (function() {
+            const expectedVersion = '20260122161500';
+            
+            // Check if we're loading old cached files
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    // Check for old version indicators in console or global variables
+                    const scripts = document.querySelectorAll('script[src*="js/"]');
+                    let hasOldCache = false;
+                    
+                    scripts.forEach(script => {
+                        if (script.src && !script.src.includes(expectedVersion)) {
+                            console.warn('OLD CACHE DETECTED:', script.src);
+                            hasOldCache = true;
+                        }
+                    });
+                    
+                    // Also check if old app version is running
+                    if (window.app && window.app.version && window.app.version !== expectedVersion) {
+                        console.warn('OLD APP VERSION DETECTED:', window.app.version, 'Expected:', expectedVersion);
+                        hasOldCache = true;
+                    }
+                    
+                    if (hasOldCache) {
+                        console.log('FORCING AGGRESSIVE CACHE REFRESH...');
+                        
+                        // Clear all possible caches
+                        Promise.all([
+                            // Clear service worker caches
+                            'caches' in window ? caches.keys().then(names => {
+                                console.log('Clearing caches:', names);
+                                return Promise.all(names.map(name => caches.delete(name)));
+                            }) : Promise.resolve(),
+                            
+                            // Clear storage
+                            new Promise(resolve => {
+                                try {
+                                    localStorage.clear();
+                                    sessionStorage.clear();
+                                    console.log('Storage cleared');
+                                } catch (e) {
+                                    console.warn('Could not clear storage:', e);
+                                }
+                                resolve();
+                            }),
+                            
+                            // Clear IndexedDB
+                            'indexedDB' in window ? new Promise(resolve => {
+                                try {
+                                    const deleteReq = indexedDB.deleteDatabase('ExpenseTrackerDB');
+                                    deleteReq.onsuccess = () => {
+                                        console.log('IndexedDB cleared');
+                                        resolve();
+                                    };
+                                    deleteReq.onerror = () => {
+                                        console.warn('Could not clear IndexedDB');
+                                        resolve();
+                                    };
+                                } catch (e) {
+                                    console.warn('Could not clear IndexedDB:', e);
+                                    resolve();
+                                }
+                            }) : Promise.resolve()
+                        ]).then(() => {
+                            // Force reload with multiple cache-busting techniques
+                            const cacheBust = Date.now();
+                            const url = new URL(window.location);
+                            url.searchParams.set('v', expectedVersion);
+                            url.searchParams.set('cb', cacheBust);
+                            url.searchParams.set('nocache', 'true');
+                            
+                            console.log('Reloading with cache bust:', url.href);
+                            window.location.replace(url.href);
+                        });
+                    }
+                }, 2000);
+            });
+        })();
+    </script>
 
     <!-- Inline Theme Functionality -->
     <script>

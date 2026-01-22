@@ -1,4 +1,5 @@
 // Expense Service - Handles API communication
+// Version: 20260122160000
 class ExpenseService {
     constructor() {
         this.baseUrl = '/api';

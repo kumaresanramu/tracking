@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Visibility Test</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+    <div class="main-content">
+        <h1>Edit/Delete Button Visibility Test</h1>
+        
+        <div class="expense-list">
+            <div class="expense-item" data-id="1">
+                <div class="expense-info">
+                    <div class="expense-description">Test Expense 1</div>
+                    <div class="expense-details">
+                        <span class="expense-category">Food</span>
+                        <span class="expense-date">2026-01-22</span>
+                    </div>
+                </div>
+                <div class="expense-amount">$25.50</div>
+                <div class="expense-actions">
+                    <button class="btn-edit" onclick="alert('Edit clicked')" title="Edit expense">
+                        ✏️ Edit
+                    </button>
+                    <button class="btn-delete" onclick="alert('Delete clicked')" title="Delete expense">
+                        🗑️ Delete
+                    </button>
+                </div>
+            </div>
+            
+            <div class="expense-item" data-id="2">
+                <div class="expense-info">
+                    <div class="expense-description">Test Expense 2</div>
+                    <div class="expense-details">
+                        <span class="expense-category">Transport</span>
+                        <span class="expense-date">2026-01-21</span>
+                    </div>
+                </div>
+                <div class="expense-amount">$12.00</div>
+                <div class="expense-actions">
+                    <button class="btn-edit" onclick="alert('Edit clicked')" title="Edit expense">
+                        ✏️ Edit
+                    </button>
+                    <button class="btn-delete" onclick="alert('Delete clicked')" title="Delete expense">
+                        🗑️ Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 2rem;">
+            <h2>Theme Toggle Test</h2>
+            <button onclick="toggleTheme()" class="btn btn-primary">Toggle Dark/Light Theme</button>
+        </div>
+    </div>
+    
+    <script>
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            document.body.setAttribute('data-theme', newTheme);
+        }
+    </script>
+</body>
+</html>

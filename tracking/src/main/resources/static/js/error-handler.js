@@ -1,4 +1,5 @@
 // Error Handler Service - Centralized error handling and user feedback
+// Version: 20260122160000
 class ErrorHandler {
     constructor() {
         this.ui = null; // Will be set by the main app
