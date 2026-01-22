@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tags Display Test</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+    <div class="main-content">
+        <h1>Tags Display Test</h1>
+        
+        <div class="expense-list">
+            <div class="expense-item" data-id="1">
+                <div class="expense-info">
+                    <div class="expense-description">Grocery Shopping</div>
+                    <div class="expense-details">
+                        <span class="expense-category">Food & Dining</span>
+                        <span class="expense-date">1/22/2026</span>
+                        <span class="expense-payment">UPI</span>
+                    </div>
+                    <div class="expense-tags">
+                        <span class="expense-tag">👤 Personal</span>
+                        <span class="expense-tag">👨‍👩‍👧‍👦 Family</span>
+                    </div>
+                </div>
+                <div class="expense-amount">$45.50</div>
+                <div class="expense-actions">
+                    <button class="btn-edit" title="Edit expense">✏️ Edit</button>
+                    <button class="btn-delete" title="Delete expense">🗑️ Delete</button>
+                </div>
+            </div>
+            
+            <div class="expense-item" data-id="2">
+                <div class="expense-info">
+                    <div class="expense-description">Office Supplies</div>
+                    <div class="expense-details">
+                        <span class="expense-category">Office</span>
+                        <span class="expense-date">1/21/2026</span>
+                        <span class="expense-payment">Credit Card</span>
+                    </div>
+                    <div class="expense-tags">
+                        <span class="expense-tag">💼 Work</span>
+                    </div>
+                </div>
+                <div class="expense-amount">$25.00</div>
+                <div class="expense-actions">
+                    <button class="btn-edit" title="Edit expense">✏️ Edit</button>
+                    <button class="btn-delete" title="Delete expense">🗑️ Delete</button>
+                </div>
+            </div>
+            
+            <div class="expense-item" data-id="3">
+                <div class="expense-info">
+                    <div class="expense-description">Movie Tickets</div>
+                    <div class="expense-details">
+                        <span class="expense-category">Entertainment</span>
+                        <span class="expense-date">1/20/2026</span>
+                        <span class="expense-payment">Cash</span>
+                    </div>
+                    <div class="expense-tags">
+                        <span class="expense-tag">🎬 Entertainment</span>
+                        <span class="expense-tag">👨‍👩‍👧‍👦 Family</span>
+                        <span class="expense-tag">👤 Personal</span>
+                    </div>
+                </div>
+                <div class="expense-amount">$32.00</div>
+                <div class="expense-actions">
+                    <button class="btn-edit" title="Edit expense">✏️ Edit</button>
+                    <button class="btn-delete" title="Delete expense">🗑️ Delete</button>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 2rem;">
+            <h2>Theme Toggle Test</h2>
+            <button onclick="toggleTheme()" class="btn btn-primary">Toggle Dark/Light Theme</button>
+        </div>
+        
+        <div style="margin-top: 2rem;">
+            <h2>Tags Form Test</h2>
+            <form>
+                <div class="form-group">
+                    <label for="test-tags">Select Multiple Tags</label>
+                    <select id="test-tags" name="tags" multiple>
+                        <option value="work">💼 Work</option>
+                        <option value="personal">👤 Personal</option>
+                        <option value="family">👨‍👩‍👧‍👦 Family</option>
+                        <option value="health">🏥 Health</option>
+                        <option value="education">📚 Education</option>
+                        <option value="entertainment">🎬 Entertainment</option>
+                    </select>
+                    <small>Hold Ctrl/Cmd to select multiple tags</small>
+                </div>
+                <button type="button" onclick="showSelectedTags()" class="btn btn-secondary">Show Selected Tags</button>
+            </form>
+            <div id="selected-tags-display" style="margin-top: 1rem;"></div>
+        </div>
+    </div>
+    
+    <script>
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            document.body.setAttribute('data-theme', newTheme);
+        }
+        
+        function showSelectedTags() {
+            const tagsSelect = document.getElementById('test-tags');
+            const selectedTags = Array.from(tagsSelect.selectedOptions).map(option => option.value);
+            const display = document.getElementById('selected-tags-display');
+            
+            if (selectedTags.length > 0) {
+                display.innerHTML = `<strong>Selected:</strong> ${selectedTags.join(', ')}`;
+            } else {
+                display.innerHTML = '<em>No tags selected</em>';
+            }
+        }
+    </script>
+</body>
+</html>

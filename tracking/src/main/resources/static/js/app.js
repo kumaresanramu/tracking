@@ -348,13 +348,18 @@ class ExpenseTrackerApp {
         }
         
         const formData = new FormData(e.target);
+        
+        // Handle multiple tag selection properly
+        const tagsSelect = document.getElementById('expense-tags');
+        const selectedTags = Array.from(tagsSelect.selectedOptions).map(option => option.value);
+        
         const expense = {
             amount: parseFloat(formData.get('amount')),
             description: formData.get('description'),
             categoryId: parseInt(formData.get('categoryId')),
             date: formData.get('date') || new Date().toISOString().split('T')[0],
             paymentMethod: formData.get('paymentMethod') || '',
-            tags: formData.get('tags') || ''
+            tags: selectedTags.join(', ') // Join multiple tags with comma and space
         };
         
         // Validate amount
@@ -519,7 +524,7 @@ class ExpenseTrackerApp {
                             <span class="expense-date">${new Date(expense.date).toLocaleDateString()}</span>
                             ${expense.paymentMethod ? `<span class="expense-payment">${expense.paymentMethod}</span>` : ''}
                         </div>
-                        ${expense.tags ? `<div class="expense-tags">${expense.tags}</div>` : ''}
+                        ${this.formatTags(expense.tags)}
                     </div>
                     <div class="expense-amount">$${expense.amount.toFixed(2)}</div>
                     <div class="expense-actions">
@@ -550,9 +555,19 @@ class ExpenseTrackerApp {
             paymentMethodField.value = expense.paymentMethod || '';
         }
         
+        // Handle multiple tags properly for editing
         const tagsField = document.getElementById('expense-tags');
-        if (tagsField) {
-            tagsField.value = expense.tags || '';
+        if (tagsField && expense.tags) {
+            // Clear all selections first
+            Array.from(tagsField.options).forEach(option => option.selected = false);
+            
+            // Split tags by comma and trim whitespace, then select matching options
+            const expenseTags = expense.tags.split(',').map(tag => tag.trim());
+            Array.from(tagsField.options).forEach(option => {
+                if (expenseTags.includes(option.value)) {
+                    option.selected = true;
+                }
+            });
         }
         
         // Switch to expenses page
@@ -591,6 +606,28 @@ class ExpenseTrackerApp {
             console.error('Failed to delete expense:', error);
             this.ui.showToast('Failed to delete expense. Please try again.', 'error');
         }
+    }
+
+    formatTags(tags) {
+        if (!tags) return '';
+        
+        const tagIcons = {
+            'work': '💼',
+            'personal': '👤',
+            'family': '👨‍👩‍👧‍👦',
+            'health': '🏥',
+            'education': '📚',
+            'entertainment': '🎬'
+        };
+        
+        const tagList = tags.split(',').map(tag => tag.trim());
+        const tagBadges = tagList.map(tag => {
+            const icon = tagIcons[tag] || '🏷️';
+            const displayName = tag.charAt(0).toUpperCase() + tag.slice(1);
+            return `<span class="expense-tag">${icon} ${displayName}</span>`;
+        }).join('');
+        
+        return `<div class="expense-tags">${tagBadges}</div>`;
     }
 
     updateUI() {

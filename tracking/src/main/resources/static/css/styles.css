@@ -905,6 +905,11 @@ body {
     color: var(--text-secondary);
 }
 
+[data-theme="dark"] .expense-tag {
+    background: var(--primary-color);
+    color: #000;
+}
+
 [data-theme="dark"] .form-group input,
 [data-theme="dark"] .form-group select,
 [data-theme="dark"] .month-selector {
@@ -1565,7 +1570,23 @@ body {
 .expense-tags {
     font-size: 0.75rem;
     color: var(--text-muted);
-    margin-top: 0.25rem;
+    margin-top: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.expense-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: var(--primary-color);
+    color: white;
+    padding: 0.125rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .expense-amount {
@@ -1653,6 +1674,15 @@ body {
     
     .expense-details {
         gap: 0.5rem;
+    }
+    
+    .expense-tags {
+        margin-top: 0.75rem;
+    }
+    
+    .expense-tag {
+        font-size: 0.65rem;
+        padding: 0.125rem 0.375rem;
     }
 }
 
