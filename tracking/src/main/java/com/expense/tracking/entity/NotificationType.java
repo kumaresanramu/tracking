@@ -1,0 +1,14 @@
+package com.expense.tracking.entity;
+
+public enum NotificationType {
+    DAILY_EXPENSE_REMINDER,
+    RECURRING_BILL_ALERT,
+    BUDGET_THRESHOLD_WARNING,
+    BUDGET_EXCEEDED_ALERT,
+    WEEKLY_SUMMARY,
+    MONTHLY_REPORT,
+    STREAK_REWARD,
+    BADGE_EARNED,
+    OVERDUE_EXPENSE,
+    CUSTOM_REMINDER
+}

@@ -32,6 +32,7 @@ class ExpenseTrackerApp {
             this.analytics = new Analytics();
             this.ui = new UIComponents();
             this.errorHandler = new ErrorHandler();
+            this.notificationService = new NotificationService();
             
             // Connect error handler to UI
             this.errorHandler.setUI(this.ui);
@@ -329,7 +330,7 @@ class ExpenseTrackerApp {
                 }
                 break;
             case 'reminders':
-                // Load reminders
+                await this.loadNotifications();
                 break;
             case 'settings':
                 // Load settings
@@ -1348,6 +1349,318 @@ class ExpenseTrackerApp {
         
         if (reminderName && reminderAmount && reminderDate) {
             this.ui.showToast('Reminder functionality coming soon!', 'info');
+        }
+    }
+
+    // Notification methods
+    async loadNotifications() {
+        try {
+            const notifications = await this.notificationService.getRecentNotifications();
+            const unreadCount = await this.notificationService.getUnreadCount();
+            
+            this.displayNotifications(notifications);
+            this.updateUnreadCount(unreadCount);
+        } catch (error) {
+            console.error('Failed to load notifications:', error);
+            this.ui.showToast('Failed to load notifications', 'error');
+        }
+    }
+
+    displayNotifications(notifications) {
+        const notificationsList = document.getElementById('notifications-list');
+        if (!notificationsList) return;
+
+        if (notifications.length === 0) {
+            notificationsList.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔔</div>
+                    <div class="empty-state-title">No notifications</div>
+                    <div class="empty-state-description">You're all caught up!</div>
+                </div>
+            `;
+            return;
+        }
+
+        notificationsList.innerHTML = notifications.map(notification => `
+            <div class="notification-item ${notification.isRead ? 'read' : 'unread'} ${this.notificationService.getPriorityClass(notification.priority)}" 
+                 data-id="${notification.id}">
+                <div class="notification-icon">
+                    ${notification.icon || this.notificationService.getNotificationIcon(notification.type)}
+                </div>
+                <div class="notification-content">
+                    <div class="notification-title">${notification.title}</div>
+                    <div class="notification-message">${notification.message}</div>
+                    <div class="notification-meta">
+                        <span class="notification-time">${notification.timeAgo}</span>
+                        <span class="notification-type">${notification.type.replace(/_/g, ' ').toLowerCase()}</span>
+                    </div>
+                </div>
+                <div class="notification-actions">
+                    ${notification.actionUrl ? `
+                        <button class="btn btn-small" onclick="app.handleNotificationAction('${notification.actionUrl}', ${notification.id})">
+                            ${notification.actionLabel || 'View'}
+                        </button>
+                    ` : ''}
+                    ${!notification.isRead ? `
+                        <button class="btn btn-small" onclick="app.markNotificationRead(${notification.id})">
+                            ✓ Mark Read
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-small btn-secondary" onclick="app.deleteNotification(${notification.id})">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    updateUnreadCount(count) {
+        const unreadBadge = document.getElementById('unread-count');
+        if (unreadBadge) {
+            unreadBadge.textContent = count;
+            unreadBadge.style.display = count > 0 ? 'inline-block' : 'none';
+        }
+    }
+
+    async markNotificationRead(notificationId) {
+        try {
+            await this.notificationService.markAsRead(notificationId);
+            await this.loadNotifications(); // Refresh the list
+            this.ui.showToast('Notification marked as read', 'success');
+        } catch (error) {
+            console.error('Failed to mark notification as read:', error);
+            this.ui.showToast('Failed to mark notification as read', 'error');
+        }
+    }
+
+    async markAllNotificationsRead() {
+        try {
+            await this.notificationService.markAllAsRead();
+            await this.loadNotifications(); // Refresh the list
+            this.ui.showToast('All notifications marked as read', 'success');
+        } catch (error) {
+            console.error('Failed to mark all notifications as read:', error);
+            this.ui.showToast('Failed to mark all notifications as read', 'error');
+        }
+    }
+
+    async deleteNotification(notificationId) {
+        if (!confirm('Are you sure you want to delete this notification?')) {
+            return;
+        }
+
+        try {
+            await this.notificationService.deleteNotification(notificationId);
+            await this.loadNotifications(); // Refresh the list
+            this.ui.showToast('Notification deleted', 'success');
+        } catch (error) {
+            console.error('Failed to delete notification:', error);
+            this.ui.showToast('Failed to delete notification', 'error');
+        }
+    }
+
+    async refreshNotifications() {
+        await this.loadNotifications();
+        this.ui.showToast('Notifications refreshed', 'info');
+    }
+
+    handleNotificationAction(actionUrl, notificationId) {
+        // Mark as read when action is taken
+        this.markNotificationRead(notificationId);
+        
+        // Navigate to the action URL
+        if (actionUrl.startsWith('/')) {
+            // Internal navigation
+            const page = actionUrl.substring(1);
+            this.navigateToPage(page);
+        } else {
+            // External URL
+            window.open(actionUrl, '_blank');
+        }
+    }
+
+    // Quick notification creation methods
+    async createDailyReminder() {
+        try {
+            await this.notificationService.createDailyReminder();
+            await this.loadNotifications();
+            this.ui.showToast('Daily reminder created!', 'success');
+        } catch (error) {
+            console.error('Failed to create daily reminder:', error);
+            this.ui.showToast('Failed to create daily reminder', 'error');
+        }
+    }
+
+    async createWeeklySummary() {
+        try {
+            // Calculate some sample data
+            const totalSpent = this.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            const topCategory = 'Food & Dining'; // Simplified for demo
+            
+            await this.notificationService.createWeeklySummary(totalSpent, topCategory);
+            await this.loadNotifications();
+            this.ui.showToast('Weekly summary created!', 'success');
+        } catch (error) {
+            console.error('Failed to create weekly summary:', error);
+            this.ui.showToast('Failed to create weekly summary', 'error');
+        }
+    }
+
+    async testBudgetAlert() {
+        try {
+            // Create a test budget alert
+            await this.notificationService.createBudgetAlert(85, 850, 1000);
+            await this.loadNotifications();
+            this.ui.showToast('Budget alert created!', 'success');
+        } catch (error) {
+            console.error('Failed to create budget alert:', error);
+            this.ui.showToast('Failed to create budget alert', 'error');
+        }
+    }
+
+    async createStreakReward() {
+        try {
+            // Create a test streak reward
+            const days = Math.floor(Math.random() * 30) + 1; // Random 1-30 days
+            await this.notificationService.createStreakReward(days);
+            await this.loadNotifications();
+            this.ui.showToast('Streak reward created!', 'success');
+        } catch (error) {
+            console.error('Failed to create streak reward:', error);
+            this.ui.showToast('Failed to create streak reward', 'error');
+        }
+    }
+
+    async showNotificationSettings() {
+        try {
+            const settings = await this.notificationService.getSettings();
+            this.displayNotificationSettingsModal(settings);
+        } catch (error) {
+            console.error('Failed to load notification settings:', error);
+            this.ui.showToast('Failed to load notification settings', 'error');
+        }
+    }
+
+    displayNotificationSettingsModal(settings) {
+        const modalContent = `
+            <div class="notification-settings-form">
+                <div class="form-section">
+                    <h4>📝 Daily Reminders</h4>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableDailyReminder" ${settings?.enableDailyReminder ? 'checked' : ''}>
+                            Enable daily expense reminders
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="dailyReminderTime">Reminder time:</label>
+                        <input type="time" id="dailyReminderTime" value="${settings?.dailyReminderTime || '20:00'}">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4>💰 Budget Alerts</h4>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableBudgetAlerts" ${settings?.enableBudgetAlerts ? 'checked' : ''}>
+                            Enable budget threshold alerts
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="budgetWarningThreshold">Warning threshold (%):</label>
+                        <input type="number" id="budgetWarningThreshold" min="50" max="100" value="${settings?.budgetWarningThreshold || 80}">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4>📊 Weekly Summary</h4>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableWeeklySummary" ${settings?.enableWeeklySummary ? 'checked' : ''}>
+                            Enable weekly summary emails
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="weeklySummaryTime">Summary time:</label>
+                        <input type="time" id="weeklySummaryTime" value="${settings?.weeklySummaryTime || '09:00'}">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4>🎮 Gamification</h4>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableStreakRewards" ${settings?.enableStreakRewards ? 'checked' : ''}>
+                            Enable streak rewards
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableBadges" ${settings?.enableBadges ? 'checked' : ''}>
+                            Enable achievement badges
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4>🌙 Quiet Hours</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="quietHoursStart">Start:</label>
+                            <input type="time" id="quietHoursStart" value="${settings?.quietHoursStart || '22:00'}">
+                        </div>
+                        <div class="form-group">
+                            <label for="quietHoursEnd">End:</label>
+                            <input type="time" id="quietHoursEnd" value="${settings?.quietHoursEnd || '08:00'}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4>📧 Email Notifications</h4>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableEmailNotifications" ${settings?.enableEmailNotifications ? 'checked' : ''}>
+                            Enable email notifications
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="emailAddress">Email address:</label>
+                        <input type="email" id="emailAddress" value="${settings?.emailAddress || ''}" placeholder="your@email.com">
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.ui.showModal('Notification Settings', modalContent, {
+            onConfirm: () => this.saveNotificationSettings(),
+            confirmText: 'Save Settings',
+            cancelText: 'Cancel'
+        });
+    }
+
+    async saveNotificationSettings() {
+        try {
+            const settingsData = {
+                enableDailyReminder: document.getElementById('enableDailyReminder').checked,
+                dailyReminderTime: document.getElementById('dailyReminderTime').value,
+                enableBudgetAlerts: document.getElementById('enableBudgetAlerts').checked,
+                budgetWarningThreshold: parseInt(document.getElementById('budgetWarningThreshold').value),
+                enableWeeklySummary: document.getElementById('enableWeeklySummary').checked,
+                weeklySummaryTime: document.getElementById('weeklySummaryTime').value,
+                enableStreakRewards: document.getElementById('enableStreakRewards').checked,
+                enableBadges: document.getElementById('enableBadges').checked,
+                quietHoursStart: document.getElementById('quietHoursStart').value,
+                quietHoursEnd: document.getElementById('quietHoursEnd').value,
+                enableEmailNotifications: document.getElementById('enableEmailNotifications').checked,
+                emailAddress: document.getElementById('emailAddress').value
+            };
+
+            await this.notificationService.updateSettings(settingsData);
+            this.ui.showToast('Notification settings saved!', 'success');
+        } catch (error) {
+            console.error('Failed to save notification settings:', error);
+            this.ui.showToast('Failed to save notification settings', 'error');
         }
     }
 

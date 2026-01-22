@@ -333,13 +333,62 @@
             <div id="reminders-page" class="page">
                 <div class="reminders-container">
                     <div class="page-header">
-                        <h2>Payment Reminders</h2>
-                        <button class="btn btn-primary" onclick="app.showAddReminderForm()">
-                            <span>+</span> Add Reminder
-                        </button>
+                        <h2>Notifications & Reminders</h2>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="app.showNotificationSettings()">
+                                ⚙️ Settings
+                            </button>
+                            <button class="btn btn-primary" onclick="app.showAddReminderForm()">
+                                <span>+</span> Add Reminder
+                            </button>
+                        </div>
                     </div>
-                    <div id="reminders-list" class="reminders-list">
-                        <!-- Reminders will be populated here -->
+                    
+                    <!-- Notification Center -->
+                    <div class="notification-center">
+                        <div class="notification-header">
+                            <h3>📢 Notification Center</h3>
+                            <div class="notification-actions">
+                                <span id="unread-count" class="unread-badge">0</span>
+                                <button class="btn btn-small" onclick="app.markAllNotificationsRead()">Mark All Read</button>
+                                <button class="btn btn-small" onclick="app.refreshNotifications()">🔄 Refresh</button>
+                            </div>
+                        </div>
+                        <div id="notifications-list" class="notifications-list">
+                            <!-- Notifications will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Reminders -->
+                    <div class="payment-reminders">
+                        <div class="section-header">
+                            <h3>💰 Payment Reminders</h3>
+                            <button class="btn btn-small btn-primary" onclick="app.showAddReminderForm()">
+                                + Add Payment Reminder
+                            </button>
+                        </div>
+                        <div id="reminders-list" class="reminders-list">
+                            <!-- Payment reminders will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="quick-notification-actions">
+                        <h3>🚀 Quick Actions</h3>
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" onclick="app.createDailyReminder()">
+                                📝 Daily Expense Reminder
+                            </button>
+                            <button class="btn btn-secondary" onclick="app.createWeeklySummary()">
+                                📊 Weekly Summary
+                            </button>
+                            <button class="btn btn-secondary" onclick="app.testBudgetAlert()">
+                                ⚠️ Test Budget Alert
+                            </button>
+                            <button class="btn btn-secondary" onclick="app.createStreakReward()">
+                                🎉 Test Streak Reward
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -368,6 +417,7 @@
     <script src="/js/expense-service.js?nocache=20260122180000&force=reload"></script>
     <script src="/js/analytics.js?nocache=20260122180000&force=reload"></script>
     <script src="/js/ui-components.js?nocache=20260122180000&force=reload"></script>
+    <script src="/js/notification-service.js?nocache=20260122180000&force=reload"></script>
     <script src="/js/app.js?nocache=20260122180000&force=reload"></script>
 
     <!-- Cache Detection and Force Reload Script -->
