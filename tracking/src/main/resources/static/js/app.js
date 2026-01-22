@@ -2090,6 +2090,69 @@ class ExpenseTrackerApp {
         }
     }
 
+    // Enhanced smart notification methods
+    async createSmartWeeklySummary() {
+        try {
+            const response = await fetch('/api/notifications/smart-weekly-summary', {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                await this.loadNotifications();
+                this.ui.showToast('Weekly summary created with real data!', 'success');
+            } else {
+                throw new Error('Failed to create weekly summary');
+            }
+        } catch (error) {
+            console.error('Failed to create smart weekly summary:', error);
+            this.ui.showToast('Failed to create weekly summary', 'error');
+        }
+    }
+
+    async createSmartBudgetAlert() {
+        try {
+            // Get monthly budget from settings
+            const monthlyBudget = this.monthlyBudget || 0;
+            
+            if (monthlyBudget <= 0) {
+                this.ui.showToast('Please set a monthly budget first in Dashboard settings', 'warning');
+                return;
+            }
+            
+            const response = await fetch(`/api/notifications/smart-budget-alert?monthlyBudget=${monthlyBudget}`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                await this.loadNotifications();
+                this.ui.showToast('Budget alert created with current spending data!', 'success');
+            } else {
+                throw new Error('Failed to create budget alert');
+            }
+        } catch (error) {
+            console.error('Failed to create smart budget alert:', error);
+            this.ui.showToast('Failed to create budget alert', 'error');
+        }
+    }
+
+    async createSmartStreakReward() {
+        try {
+            const response = await fetch('/api/notifications/smart-streak-reward', {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                await this.loadNotifications();
+                this.ui.showToast('Streak reward created with your actual logging days!', 'success');
+            } else {
+                throw new Error('Failed to create streak reward');
+            }
+        } catch (error) {
+            console.error('Failed to create smart streak reward:', error);
+            this.ui.showToast('Failed to create streak reward', 'error');
+        }
+    }
+
 
 
     async showNotificationSettings() {

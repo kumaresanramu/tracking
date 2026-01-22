@@ -99,4 +99,20 @@ public class NotificationController {
             @RequestParam String topCategory) {
         return ResponseEntity.ok(notificationService.createWeeklySummary(totalSpent, topCategory));
     }
+    
+    // Enhanced notification endpoints with smart data calculation
+    @PostMapping("/smart-budget-alert")
+    public ResponseEntity<NotificationResponse> createSmartBudgetAlert(@RequestParam double monthlyBudget) {
+        return ResponseEntity.ok(notificationService.createSmartBudgetAlert(monthlyBudget));
+    }
+    
+    @PostMapping("/smart-streak-reward")
+    public ResponseEntity<NotificationResponse> createSmartStreakReward() {
+        return ResponseEntity.ok(notificationService.createSmartStreakReward());
+    }
+    
+    @PostMapping("/smart-weekly-summary")
+    public ResponseEntity<NotificationResponse> createSmartWeeklySummary() {
+        return ResponseEntity.ok(notificationService.createSmartWeeklySummary());
+    }
 }
