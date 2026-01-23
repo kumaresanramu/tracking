@@ -6,13 +6,18 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.expense.tracking.dto.EmailTemplateData;
 import com.expense.tracking.dto.NotificationRequest;
 import com.expense.tracking.dto.NotificationResponse;
+import com.expense.tracking.dto.NotificationSettingsResponse;
 import com.expense.tracking.entity.Expense;
 import com.expense.tracking.entity.Notification;
 import com.expense.tracking.entity.NotificationChannel;
@@ -30,14 +35,30 @@ public class NotificationService {
     
     private final NotificationRepository notificationRepository;
     private final ExpenseRepository expenseRepository;
+    private final NotificationSettingsService notificationSettingsService;
+    
+    @Autowired(required = false)
+    private PushNotificationService pushNotificationService;
+    
+    @Autowired(required = false)
+    private EmailNotificationService emailNotificationService;
     
     @Transactional
     public NotificationResponse createNotification(NotificationRequest request) {
+        // Get user notification settings to determine channels
+        NotificationSettingsResponse settingsResponse = notificationSettingsService.getSettings();
+        
+        // Check if the notification type is enabled
+        if (!isNotificationTypeEnabled(request.getType(), settingsResponse)) {
+            log.info("Notification type {} is disabled in user settings", request.getType());
+            return null;
+        }
+        
         Notification notification = Notification.builder()
                 .title(request.getTitle())
                 .message(request.getMessage())
                 .type(request.getType())
-                .channel(request.getChannel())
+                .channel(request.getChannel()) // This will be overridden by user preferences during sending
                 .scheduledFor(request.getScheduledFor())
                 .actionUrl(request.getActionUrl())
                 .actionLabel(request.getActionLabel())
@@ -49,6 +70,16 @@ public class NotificationService {
         log.info("Created notification: {} for type: {}", notification.getId(), notification.getType());
         
         return mapToResponse(notification);
+    }
+    
+    private boolean isNotificationTypeEnabled(NotificationType type, NotificationSettingsResponse settingsResponse) {
+        return switch (type) {
+            case DAILY_EXPENSE_REMINDER -> settingsResponse.getEnableDailyReminder();
+            case BUDGET_THRESHOLD_WARNING, BUDGET_EXCEEDED_ALERT -> settingsResponse.getEnableBudgetAlerts();
+            case WEEKLY_SUMMARY -> settingsResponse.getEnableWeeklySummary();
+            case STREAK_REWARD -> settingsResponse.getEnableStreakRewards();
+            default -> true; // Enable other types by default
+        };
     }
     
     public List<NotificationResponse> getAllNotifications() {
@@ -188,25 +219,249 @@ public class NotificationService {
     }
     
     private void sendNotification(Notification notification) {
-        // This is where you would integrate with actual notification services
-        log.info("Sending {} notification: {} via {}", 
-                notification.getType(), notification.getTitle(), notification.getChannel());
+        // Get user notification settings
+        NotificationSettingsResponse settingsResponse = notificationSettingsService.getSettings();
+        Set<NotificationChannel> enabledChannels = settingsResponse.getPreferredChannels();
         
-        switch (notification.getChannel()) {
-            case PUSH -> sendPushNotification(notification);
-            case EMAIL -> sendEmailNotification(notification);
-            case IN_APP -> log.info("In-app notification ready for display");
+        // Skip notifications during quiet hours for non-urgent notifications
+        if (settingsResponse.getIsInQuietHours() && !isUrgentNotification(notification.getType())) {
+            log.info("Skipping notification during quiet hours: {}", notification.getTitle());
+            return;
+        }
+        
+        log.info("Sending {} notification: {} via enabled channels: {}", 
+                notification.getType(), notification.getTitle(), enabledChannels);
+        
+        // Send via each enabled channel
+        for (NotificationChannel channel : enabledChannels) {
+            switch (channel) {
+                case PUSH -> sendPushNotification(notification);
+                case EMAIL -> sendEmailNotification(notification, settingsResponse);
+                case IN_APP -> log.info("In-app notification ready for display");
+            }
         }
     }
     
-    private void sendPushNotification(Notification notification) {
-        // Integrate with push notification service (Firebase, etc.)
-        log.info("Would send push notification: {}", notification.getTitle());
+    private boolean isUrgentNotification(NotificationType type) {
+        return type == NotificationType.BUDGET_EXCEEDED_ALERT || 
+               type == NotificationType.BUDGET_THRESHOLD_WARNING;
     }
     
-    private void sendEmailNotification(Notification notification) {
-        // Integrate with email service
-        log.info("Would send email notification: {}", notification.getTitle());
+    private void sendPushNotification(Notification notification) {
+        if (pushNotificationService == null) {
+            log.warn("Push notification service not available");
+            return;
+        }
+        
+        try {
+            PushNotificationService.NotificationPayload payload = createPushPayload(notification);
+            CompletableFuture<Integer> future = pushNotificationService.sendToAllActiveSubscriptions(payload);
+            
+            future.whenComplete((count, throwable) -> {
+                if (throwable != null) {
+                    log.error("Failed to send push notification: {}", notification.getTitle(), throwable);
+                } else {
+                    log.info("Push notification sent to {} subscribers: {}", count, notification.getTitle());
+                }
+            });
+        } catch (Exception e) {
+            log.error("Error creating push notification payload", e);
+        }
+    }
+    
+    private void sendEmailNotification(Notification notification, NotificationSettingsResponse settingsResponse) {
+        if (emailNotificationService == null) {
+            log.warn("Email notification service not available");
+            return;
+        }
+        
+        if (!settingsResponse.getEnableEmailNotifications() || settingsResponse.getEmailAddress() == null) {
+            log.debug("Email notifications disabled or no email address configured");
+            return;
+        }
+        
+        try {
+            CompletableFuture<Void> future = sendEmailByType(notification, settingsResponse);
+            
+            future.whenComplete((result, throwable) -> {
+                if (throwable != null) {
+                    log.error("Failed to send email notification: {}", notification.getTitle(), throwable);
+                } else {
+                    log.info("Email notification sent successfully: {}", notification.getTitle());
+                }
+            });
+        } catch (Exception e) {
+            log.error("Error sending email notification", e);
+        }
+    }
+    
+    private PushNotificationService.NotificationPayload createPushPayload(Notification notification) {
+        PushNotificationService.NotificationPayload.Builder builder = new PushNotificationService.NotificationPayload.Builder()
+                .title(notification.getTitle())
+                .body(notification.getMessage())
+                .icon("/icons/icon-192x192.svg")
+                .badge("/icons/icon.svg")
+                .tag(notification.getType().toString().toLowerCase())
+                .requireInteraction(isUrgentNotification(notification.getType()));
+        
+        // Add action buttons for specific notification types
+        if (notification.getActionUrl() != null && notification.getActionLabel() != null) {
+            PushNotificationService.NotificationAction[] actions = {
+                new PushNotificationService.NotificationAction("open", notification.getActionLabel(), "📱"),
+                new PushNotificationService.NotificationAction("dismiss", "Dismiss", "❌")
+            };
+            builder.actions(actions);
+        }
+        
+        // Add custom data
+        Map<String, Object> data = Map.of(
+            "notificationId", notification.getId(),
+            "type", notification.getType().toString(),
+            "actionUrl", notification.getActionUrl() != null ? notification.getActionUrl() : "/dashboard",
+            "timestamp", notification.getCreatedAt().toString()
+        );
+        builder.data(data);
+        
+        return builder.build();
+    }
+    
+    private CompletableFuture<Void> sendEmailByType(Notification notification, NotificationSettingsResponse settingsResponse) {
+        switch (notification.getType()) {
+            case DAILY_EXPENSE_REMINDER -> {
+                EmailTemplateData.DailyReminderData data = createDailyReminderData(settingsResponse);
+                return emailNotificationService.sendDailyReminder(settingsResponse.getEmailAddress(), data);
+            }
+            case WEEKLY_SUMMARY -> {
+                EmailTemplateData.WeeklySummaryData data = createWeeklySummaryData(settingsResponse);
+                return emailNotificationService.sendWeeklySummary(settingsResponse.getEmailAddress(), data);
+            }
+            case BUDGET_THRESHOLD_WARNING, BUDGET_EXCEEDED_ALERT -> {
+                EmailTemplateData.BudgetAlertData data = createBudgetAlertData(notification, settingsResponse);
+                return emailNotificationService.sendBudgetAlert(settingsResponse.getEmailAddress(), data);
+            }
+            default -> {
+                // For other notification types, send as custom reminder
+                return emailNotificationService.sendCustomReminder(
+                    settingsResponse.getEmailAddress(), 
+                    notification.getTitle(), 
+                    notification.getMessage()
+                );
+            }
+        }
+    }
+    
+    private EmailTemplateData.DailyReminderData createDailyReminderData(NotificationSettingsResponse settingsResponse) {
+        LocalDate today = LocalDate.now();
+        LocalDate startOfMonth = today.withDayOfMonth(1);
+        
+        // Calculate current month expenses
+        List<Expense> monthlyExpenses = expenseRepository.findByDateBetweenOrderByDateDesc(startOfMonth, today);
+        double currentSpending = monthlyExpenses.stream()
+                .mapToDouble(expense -> expense.getAmount().doubleValue())
+                .sum();
+        
+        // Calculate streak days
+        long streakDays = monthlyExpenses.stream()
+                .map(Expense::getDate)
+                .distinct()
+                .count();
+        
+        // Find top category
+        String topCategory = monthlyExpenses.stream()
+                .filter(expense -> expense.getCategory() != null)
+                .collect(Collectors.groupingBy(
+                    expense -> expense.getCategory().getName(),
+                    Collectors.summingDouble(expense -> expense.getAmount().doubleValue())
+                ))
+                .entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse("No expenses yet");
+        
+        return EmailTemplateData.DailyReminderData.builder()
+                .userName("User") // TODO: Get actual user name when user management is implemented
+                .date(today)
+                .streakDays((int) streakDays)
+                .monthlyBudget(10000.0) // TODO: Get from user budget settings
+                .currentSpending(currentSpending)
+                .topCategory(topCategory)
+                .build();
+    }
+    
+    private EmailTemplateData.WeeklySummaryData createWeeklySummaryData(NotificationSettingsResponse settingsResponse) {
+        LocalDate today = LocalDate.now();
+        LocalDate weekStart = today.minusDays(7);
+        
+        List<Expense> weeklyExpenses = expenseRepository.findByDateBetweenOrderByDateDesc(weekStart, today);
+        
+        double totalSpent = weeklyExpenses.stream()
+                .mapToDouble(expense -> expense.getAmount().doubleValue())
+                .sum();
+        
+        Map<String, Double> categoryBreakdown = weeklyExpenses.stream()
+                .filter(expense -> expense.getCategory() != null)
+                .collect(Collectors.groupingBy(
+                    expense -> expense.getCategory().getName(),
+                    Collectors.summingDouble(expense -> expense.getAmount().doubleValue())
+                ));
+        
+        List<Expense> topExpenses = weeklyExpenses.stream()
+                .sorted((e1, e2) -> e2.getAmount().compareTo(e1.getAmount()))
+                .limit(5)
+                .collect(Collectors.toList());
+        
+        return EmailTemplateData.WeeklySummaryData.builder()
+                .userName("User") // TODO: Get actual user name
+                .weekStart(weekStart)
+                .weekEnd(today)
+                .totalSpent(totalSpent)
+                .categoryBreakdown(categoryBreakdown)
+                .topExpenses(topExpenses)
+                .chartImageUrl(null) // TODO: Generate chart image URL
+                .build();
+    }
+    
+    private EmailTemplateData.BudgetAlertData createBudgetAlertData(Notification notification, NotificationSettingsResponse settingsResponse) {
+        LocalDate today = LocalDate.now();
+        LocalDate startOfMonth = today.withDayOfMonth(1);
+        
+        List<Expense> monthlyExpenses = expenseRepository.findByDateBetweenOrderByDateDesc(startOfMonth, today);
+        double currentSpending = monthlyExpenses.stream()
+                .mapToDouble(expense -> expense.getAmount().doubleValue())
+                .sum();
+        
+        double budgetAmount = 10000.0; // TODO: Get from user budget settings
+        double percentage = budgetAmount > 0 ? (currentSpending / budgetAmount) * 100 : 0;
+        
+        List<String> topCategories = monthlyExpenses.stream()
+                .filter(expense -> expense.getCategory() != null)
+                .collect(Collectors.groupingBy(
+                    expense -> expense.getCategory().getName(),
+                    Collectors.summingDouble(expense -> expense.getAmount().doubleValue())
+                ))
+                .entrySet().stream()
+                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+                .limit(3)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+        
+        String alertType = notification.getType() == NotificationType.BUDGET_EXCEEDED_ALERT ? "exceeded" : "warning";
+        
+        return EmailTemplateData.BudgetAlertData.builder()
+                .userName("User") // TODO: Get actual user name
+                .budgetAmount(budgetAmount)
+                .currentSpending(currentSpending)
+                .percentage(percentage)
+                .alertType(alertType)
+                .topCategories(topCategories)
+                .build();
+    }
+    
+    /**
+     * Get notification settings for budget threshold checking
+     */
+    public NotificationSettingsResponse getNotificationSettings() {
+        return notificationSettingsService.getSettings();
     }
     
     private NotificationResponse mapToResponse(Notification notification) {

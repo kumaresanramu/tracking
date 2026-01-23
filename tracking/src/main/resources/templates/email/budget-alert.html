@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Alert</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .header.warning h1 {
+            color: #fd7e14;
+        }
+        .header.exceeded h1 {
+            color: #dc3545;
+        }
+        .alert-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #495057;
+        }
+        .alert-message {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        .alert-message.warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        .alert-message.exceeded {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .budget-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 25px 0;
+        }
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-card.budget {
+            border-left: 4px solid #007bff;
+        }
+        .stat-card.spending {
+            border-left: 4px solid #dc3545;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-card.budget .stat-value {
+            color: #007bff;
+        }
+        .stat-card.spending .stat-value {
+            color: #dc3545;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .progress-container {
+            margin: 30px 0;
+        }
+        .progress-bar {
+            background-color: #e9ecef;
+            border-radius: 10px;
+            height: 24px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #ffc107, #fd7e14);
+        }
+        .progress-fill.exceeded {
+            background: linear-gradient(90deg, #dc3545, #c82333);
+        }
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            color: white;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .progress-label {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .progress-label.warning {
+            color: #fd7e14;
+        }
+        .progress-label.exceeded {
+            color: #dc3545;
+        }
+        .top-categories {
+            margin: 30px 0;
+        }
+        .top-categories h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        .category-item:last-child {
+            border-bottom: none;
+        }
+        .category-name {
+            font-weight: 500;
+            color: #495057;
+        }
+        .category-spending {
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .cta-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            text-decoration: none;
+            padding: 15px 25px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 10px;
+            transition: transform 0.2s ease;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+        }
+        .cta-button.primary {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+        }
+        .cta-button.secondary {
+            background: linear-gradient(135deg, #6c757d, #495057);
+            color: white;
+        }
+        .tips {
+            background-color: #e7f3ff;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 25px 0;
+            border-left: 4px solid #007bff;
+        }
+        .tips h4 {
+            color: #007bff;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .tips ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .tips li {
+            margin-bottom: 8px;
+            color: #495057;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        @media (max-width: 600px) {
+            .budget-stats {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 20px;
+            }
+            .cta-button {
+                display: block;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header" th:classappend="${alertType == 'exceeded'} ? 'exceeded' : 'warning'">
+            <div class="alert-icon" th:text="${alertType == 'exceeded'} ? '🚨' : '⚠️'">⚠️</div>
+            <h1 th:text="${alertType == 'exceeded'} ? 'Budget Exceeded!' : 'Budget Warning!'">Budget Alert!</h1>
+        </div>
+        
+        <div class="greeting">
+            Hi <span th:text="${userName}">User</span>! 👋
+        </div>
+        
+        <div class="alert-message" th:classappend="${alertType == 'exceeded'} ? 'exceeded' : 'warning'">
+            <span th:if="${alertType == 'exceeded'}">
+                You've exceeded your monthly budget! Time to review your spending.
+            </span>
+            <span th:if="${alertType == 'warning'}">
+                You're approaching your monthly budget limit. Keep an eye on your spending!
+            </span>
+        </div>
+        
+        <div class="budget-stats">
+            <div class="stat-card budget">
+                <div class="stat-value" th:text="${#numbers.formatCurrency(budgetAmount)}">$0.00</div>
+                <div class="stat-label">Monthly Budget</div>
+            </div>
+            <div class="stat-card spending">
+                <div class="stat-value" th:text="${#numbers.formatCurrency(currentSpending)}">$0.00</div>
+                <div class="stat-label">Current Spending</div>
+            </div>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" 
+                     th:classappend="${alertType == 'exceeded'} ? 'exceeded' : 'warning'"
+                     th:style="'width: ' + ${percentage > 100 ? 100 : percentage} + '%'">
+                    <div class="progress-text" th:text="${#numbers.formatPercent(percentage / 100, 0, 0)}">0%</div>
+                </div>
+            </div>
+            <div class="progress-label" th:classappend="${alertType == 'exceeded'} ? 'exceeded' : 'warning'">
+                <span th:text="${#numbers.formatPercent(percentage / 100, 1, 1)}">0%</span> of budget used
+            </div>
+        </div>
+        
+        <div class="top-categories" th:if="${topCategories != null and !topCategories.isEmpty()}">
+            <h3>🔝 Top Spending Categories</h3>
+            <div th:each="category : ${topCategories}" class="category-item">
+                <div class="category-name" th:text="${category}">Category</div>
+                <div class="category-spending">High spending</div>
+            </div>
+        </div>
+        
+        <div class="tips">
+            <h4>💡 Budget Management Tips</h4>
+            <ul>
+                <li>Review your recent expenses and identify areas to cut back</li>
+                <li>Consider setting up category-specific budgets for better control</li>
+                <li>Use the expense tracker daily to stay aware of your spending</li>
+                <li>Set up weekly spending limits to avoid month-end surprises</li>
+            </ul>
+        </div>
+        
+        <div class="cta-buttons">
+            <a href="#" class="cta-button primary">📊 View Detailed Report</a>
+            <a href="#" class="cta-button secondary">⚙️ Adjust Budget</a>
+        </div>
+        
+        <div class="footer">
+            <p>Stay on track with your financial goals! 🎯</p>
+            <p>
+                <a href="#" style="color: #6c757d;">Unsubscribe</a> | 
+                <a href="#" style="color: #6c757d;">Update Preferences</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
