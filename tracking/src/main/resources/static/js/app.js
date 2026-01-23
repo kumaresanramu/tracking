@@ -1611,8 +1611,10 @@ class ExpenseTrackerApp {
                                 <label for="reminder-frequency">Frequency *</label>
                                 <select id="reminder-frequency" name="frequency" required class="form-input">
                                     <option value="ONCE">One-time payment</option>
+                                    <option value="DAILY">Daily</option>
                                     <option value="WEEKLY">Weekly</option>
                                     <option value="MONTHLY" selected>Monthly</option>
+                                    <option value="QUARTERLY">Quarterly</option>
                                     <option value="YEARLY">Yearly</option>
                                 </select>
                                 <small>How often does this payment occur?</small>
@@ -1723,8 +1725,10 @@ class ExpenseTrackerApp {
         if (frequency) {
             const frequencyText = {
                 'ONCE': 'One-time',
+                'DAILY': 'Daily',
                 'WEEKLY': 'Weekly',
                 'MONTHLY': 'Monthly',
+                'QUARTERLY': 'Quarterly',
                 'YEARLY': 'Yearly'
             };
             preview += `<div class="preview-frequency">Frequency: ${frequencyText[frequency]}</div>`;
