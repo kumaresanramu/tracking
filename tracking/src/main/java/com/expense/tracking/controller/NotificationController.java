@@ -115,4 +115,22 @@ public class NotificationController {
     public ResponseEntity<NotificationResponse> createSmartWeeklySummary() {
         return ResponseEntity.ok(notificationService.createSmartWeeklySummary());
     }
+    
+    // Test notification endpoints
+    @PostMapping("/test")
+    public ResponseEntity<NotificationResponse> sendTestNotification(@Valid @RequestBody NotificationRequest request) {
+        return ResponseEntity.ok(notificationService.createNotification(request));
+    }
+    
+    @PostMapping("/test-email")
+    public ResponseEntity<Void> sendTestEmail(@RequestBody java.util.Map<String, String> request) {
+        String email = request.get("email");
+        String type = request.get("type");
+        
+        if (email != null) {
+            notificationService.sendTestEmail(email, type);
+        }
+        
+        return ResponseEntity.ok().build();
+    }
 }

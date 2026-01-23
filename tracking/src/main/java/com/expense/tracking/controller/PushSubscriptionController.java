@@ -46,6 +46,61 @@ public class PushSubscriptionController {
     }
     
     /**
+     * Get VAPID public key for push subscription.
+     */
+    @GetMapping("/vapid-public-key")
+    public ResponseEntity<String> getVapidPublicKey() {
+        try {
+            String publicKey = pushSubscriptionService.getVapidPublicKey();
+            return ResponseEntity.ok(publicKey);
+        } catch (Exception e) {
+            log.error("Failed to get VAPID public key", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
+     * Unsubscribe from push notifications via POST.
+     */
+    @PostMapping("/unsubscribe")
+    public ResponseEntity<Void> unsubscribePost(@RequestBody java.util.Map<String, String> request) {
+        try {
+            String endpoint = request.get("endpoint");
+            if (endpoint != null) {
+                pushSubscriptionService.deactivateSubscription(endpoint);
+            }
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Failed to unsubscribe from push notifications", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
+     * Subscribe to push notifications.
+     * Creates a new push subscription or updates an existing one.
+     */
+    @PostMapping
+    public ResponseEntity<PushSubscriptionResponse> subscribePost(
+            @Valid @RequestBody PushSubscriptionRequest request,
+            HttpServletRequest httpRequest) {
+        
+        try {
+            String userAgent = request.getUserAgent() != null ? 
+                request.getUserAgent() : httpRequest.getHeader("User-Agent");
+            
+            PushSubscription subscription = pushSubscriptionService.createOrUpdateSubscription(request, userAgent);
+            PushSubscriptionResponse response = PushSubscriptionResponse.fromEntity(subscription);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("Failed to create/update push subscription", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    /**
      * Subscribe to push notifications.
      * Creates a new push subscription or updates an existing one.
      */

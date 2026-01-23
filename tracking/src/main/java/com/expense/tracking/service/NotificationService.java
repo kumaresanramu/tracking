@@ -36,6 +36,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final ExpenseRepository expenseRepository;
     private final NotificationSettingsService notificationSettingsService;
+    private final NotificationPermissionService notificationPermissionService;
     
     @Autowired(required = false)
     private PushNotificationService pushNotificationService;
@@ -219,25 +220,27 @@ public class NotificationService {
     }
     
     private void sendNotification(Notification notification) {
-        // Get user notification settings
-        NotificationSettingsResponse settingsResponse = notificationSettingsService.getSettings();
-        Set<NotificationChannel> enabledChannels = settingsResponse.getPreferredChannels();
+        // Get effective channels based on user preferences and permissions
+        Set<NotificationChannel> effectiveChannels = notificationPermissionService.getEffectiveChannels();
         
-        // Skip notifications during quiet hours for non-urgent notifications
-        if (settingsResponse.getIsInQuietHours() && !isUrgentNotification(notification.getType())) {
-            log.info("Skipping notification during quiet hours: {}", notification.getTitle());
+        if (effectiveChannels.isEmpty()) {
+            log.info("No effective notification channels available for notification: {}", notification.getTitle());
             return;
         }
         
-        log.info("Sending {} notification: {} via enabled channels: {}", 
-                notification.getType(), notification.getTitle(), enabledChannels);
+        log.info("Sending {} notification: {} via effective channels: {}", 
+                notification.getType(), notification.getTitle(), effectiveChannels);
         
-        // Send via each enabled channel
-        for (NotificationChannel channel : enabledChannels) {
-            switch (channel) {
-                case PUSH -> sendPushNotification(notification);
-                case EMAIL -> sendEmailNotification(notification, settingsResponse);
-                case IN_APP -> log.info("In-app notification ready for display");
+        // Send via each effective channel
+        for (NotificationChannel channel : effectiveChannels) {
+            if (notificationPermissionService.canSendNotification(notification.getType().name(), channel)) {
+                switch (channel) {
+                    case PUSH -> sendPushNotification(notification);
+                    case EMAIL -> sendEmailNotification(notification);
+                    case IN_APP -> log.info("In-app notification ready for display");
+                }
+            } else {
+                log.debug("Cannot send notification via channel {} due to permission restrictions", channel);
             }
         }
     }
@@ -269,11 +272,13 @@ public class NotificationService {
         }
     }
     
-    private void sendEmailNotification(Notification notification, NotificationSettingsResponse settingsResponse) {
+    private void sendEmailNotification(Notification notification) {
         if (emailNotificationService == null) {
             log.warn("Email notification service not available");
             return;
         }
+        
+        NotificationSettingsResponse settingsResponse = notificationSettingsService.getSettings();
         
         if (!settingsResponse.getEnableEmailNotifications() || settingsResponse.getEmailAddress() == null) {
             log.debug("Email notifications disabled or no email address configured");
@@ -597,5 +602,27 @@ public class NotificationService {
                 .build();
         
         return createNotification(request);
+    }
+    
+    /**
+     * Send a test email notification.
+     */
+    public void sendTestEmail(String email, String type) {
+        try {
+            EmailTemplateData.DailyReminderData testData = EmailTemplateData.DailyReminderData.builder()
+                    .userName("Test User")
+                    .date(LocalDate.now())
+                    .streakDays(5)
+                    .monthlyBudget(10000.0)
+                    .currentSpending(3500.0)
+                    .topCategory("Food")
+                    .build();
+            
+            emailNotificationService.sendDailyReminder(email, testData);
+            log.info("Test email sent to: {}", email);
+        } catch (Exception e) {
+            log.error("Failed to send test email to: {}", email, e);
+            throw new RuntimeException("Failed to send test email", e);
+        }
     }
 }

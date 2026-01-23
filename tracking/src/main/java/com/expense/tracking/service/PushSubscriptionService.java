@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.expense.tracking.config.VapidConfig;
 import com.expense.tracking.dto.PushSubscriptionRequest;
 import com.expense.tracking.entity.PushSubscription;
 import com.expense.tracking.exception.ResourceNotFoundException;
@@ -24,9 +25,12 @@ import lombok.extern.slf4j.Slf4j;
 public class PushSubscriptionService {
     
     private final PushSubscriptionRepository pushSubscriptionRepository;
+    private final VapidConfig.VapidKeyPair vapidKeyPair;
     
-    public PushSubscriptionService(PushSubscriptionRepository pushSubscriptionRepository) {
+    public PushSubscriptionService(PushSubscriptionRepository pushSubscriptionRepository,
+                                 VapidConfig.VapidKeyPair vapidKeyPair) {
         this.pushSubscriptionRepository = pushSubscriptionRepository;
+        this.vapidKeyPair = vapidKeyPair;
     }
     
     /**
@@ -233,6 +237,13 @@ public class PushSubscriptionService {
             .userId(request.getUserId())
             .active(true)
             .build();
+    }
+    
+    /**
+     * Gets the VAPID public key for client-side push subscription.
+     */
+    public String getVapidPublicKey() {
+        return vapidKeyPair.getPublicKey();
     }
     
     /**

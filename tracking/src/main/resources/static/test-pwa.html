@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Feature Testing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #1976D2;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #4caf50;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #f44336;
+        }
+        .info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <h1>PWA Feature Testing Dashboard</h1>
+    <p>This page helps test the PWA features implemented in the Expense Tracker app.</p>
+
+    <div class="test-section">
+        <h2>1. Service Worker Tests</h2>
+        <button class="test-button" onclick="testServiceWorker()">Test Service Worker</button>
+        <button class="test-button" onclick="testCaches()">Test Caches</button>
+        <button class="test-button" onclick="testOfflineCapability()">Test Offline</button>
+        <div id="sw-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. PWA Install Tests</h2>
+        <button class="test-button" onclick="testInstallPrompt()">Test Install Prompt</button>
+        <button class="test-button" onclick="testInstallState()">Check Install State</button>
+        <button class="test-button" onclick="resetInstallState()">Reset Install State</button>
+        <div id="install-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. App Update Tests</h2>
+        <button class="test-button" onclick="testUpdateCheck()">Check for Updates</button>
+        <button class="test-button" onclick="testUpdateNotification()">Show Update Notification</button>
+        <button class="test-button" onclick="testUpdateState()">Check Update State</button>
+        <div id="update-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Manifest Tests</h2>
+        <button class="test-button" onclick="testManifest()">Test Manifest</button>
+        <button class="test-button" onclick="testIcons()">Test Icons</button>
+        <button class="test-button" onclick="testShortcuts()">Test Shortcuts</button>
+        <div id="manifest-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Browser API Tests</h2>
+        <button class="test-button" onclick="testNotificationAPI()">Test Notifications</button>
+        <button class="test-button" onclick="testShareAPI()">Test Web Share</button>
+        <button class="test-button" onclick="testStorageAPI()">Test Storage</button>
+        <div id="api-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>6. PWA Criteria Check</h2>
+        <button class="test-button" onclick="runPWACheck()">Run PWA Compliance Check</button>
+        <div id="pwa-results"></div>
+    </div>
+
+    <script>
+        function addResult(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const result = document.createElement('div');
+            result.className = `test-result ${type}`;
+            result.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            container.appendChild(result);
+        }
+
+        async function testServiceWorker() {
+            const container = 'sw-results';
+            
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    addResult(container, `✓ Service Worker registered: ${registration.scope}`, 'success');
+                    
+                    if (registration.active) {
+                        addResult(container, `✓ Service Worker active: ${registration.active.scriptURL}`, 'success');
+                    }
+                    
+                    if (registration.waiting) {
+                        addResult(container, `⚠ Service Worker waiting: Update available`, 'info');
+                    }
+                    
+                } catch (error) {
+                    addResult(container, `✗ Service Worker error: ${error.message}`, 'error');
+                }
+            } else {
+                addResult(container, '✗ Service Worker not supported', 'error');
+            }
+        }
+
+        async function testCaches() {
+            const container = 'sw-results';
+            
+            if ('caches' in window) {
+                try {
+                    const cacheNames = await caches.keys();
+                    addResult(container, `✓ Found ${cacheNames.length} caches: ${cacheNames.join(', ')}`, 'success');
+                    
+                    for (const cacheName of cacheNames) {
+                        const cache = await caches.open(cacheName);
+                        const keys = await cache.keys();
+                        addResult(container, `  - ${cacheName}: ${keys.length} cached resources`, 'info');
+                    }
+                } catch (error) {
+                    addResult(container, `✗ Cache error: ${error.message}`, 'error');
+                }
+            } else {
+                addResult(container, '✗ Cache API not supported', 'error');
+            }
+        }
+
+        async function testOfflineCapability() {
+            const container = 'sw-results';
+            
+            try {
+                // Test if main resources are cached
+                const cache = await caches.open('expense-tracker-static-v2');
+                const cachedResources = await cache.keys();
+                
+                const criticalResources = ['/', '/index.html', '/js/app.js', '/css/styles.css'];
+                const cachedUrls = cachedResources.map(req => new URL(req.url).pathname);
+                
+                let allCached = true;
+                for (const resource of criticalResources) {
+                    const isCached = cachedUrls.some(url => url === resource || url.endsWith(resource));
+                    if (isCached) {
+                        addResult(container, `✓ ${resource} is cached`, 'success');
+                    } else {
+                        addResult(container, `✗ ${resource} is NOT cached`, 'error');
+                        allCached = false;
+                    }
+                }
+                
+                if (allCached) {
+                    addResult(container, '✓ App should work offline', 'success');
+                } else {
+                    addResult(container, '⚠ Some resources missing for offline use', 'info');
+                }
+                
+            } catch (error) {
+                addResult(container, `✗ Offline test error: ${error.message}`, 'error');
+            }
+        }
+
+        function testInstallPrompt() {
+            const container = 'install-results';
+            
+            // Check if app is already installed
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                                window.navigator.standalone === true;
+            
+            if (isStandalone) {
+                addResult(container, '✓ App is already installed (running in standalone mode)', 'success');
+                return;
+            }
+            
+            // Try to access the install manager
+            if (window.app && window.app.pwaInstallManager) {
+                const installManager = window.app.pwaInstallManager;
+                
+                if (installManager.canShowInstallPrompt()) {
+                    addResult(container, '✓ Install prompt can be shown', 'success');
+                    installManager.forceShowInstallPrompt();
+                    addResult(container, '→ Install prompt triggered', 'info');
+                } else {
+                    addResult(container, '⚠ Install prompt cannot be shown (dismissed or installed)', 'info');
+                }
+            } else {
+                addResult(container, '✗ PWA Install Manager not found', 'error');
+            }
+        }
+
+        function testInstallState() {
+            const container = 'install-results';
+            
+            try {
+                const installState = localStorage.getItem('pwa-install-state');
+                if (installState) {
+                    const state = JSON.parse(installState);
+                    addResult(container, `✓ Install state found: ${JSON.stringify(state)}`, 'success');
+                } else {
+                    addResult(container, '⚠ No install state found', 'info');
+                }
+                
+                const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
+                                  window.navigator.standalone === true;
+                addResult(container, `Install status: ${isInstalled ? 'Installed' : 'Not installed'}`, 'info');
+                
+            } catch (error) {
+                addResult(container, `✗ Install state error: ${error.message}`, 'error');
+            }
+        }
+
+        function resetInstallState() {
+            const container = 'install-results';
+            
+            try {
+                localStorage.removeItem('pwa-install-state');
+                addResult(container, '✓ Install state reset', 'success');
+                
+                if (window.app && window.app.pwaInstallManager) {
+                    window.app.pwaInstallManager.resetInstallState();
+                    addResult(container, '✓ Install manager state reset', 'success');
+                }
+            } catch (error) {
+                addResult(container, `✗ Reset error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testUpdateCheck() {
+            const container = 'update-results';
+            
+            if (window.app && window.app.appUpdateManager) {
+                try {
+                    await window.app.appUpdateManager.manualUpdateCheck();
+                    addResult(container, '✓ Update check completed', 'success');
+                    
+                    const updateAvailable = window.app.appUpdateManager.isUpdateAvailable();
+                    addResult(container, `Update available: ${updateAvailable}`, 'info');
+                } catch (error) {
+                    addResult(container, `✗ Update check error: ${error.message}`, 'error');
+                }
+            } else {
+                addResult(container, '✗ App Update Manager not found', 'error');
+            }
+        }
+
+        function testUpdateNotification() {
+            const container = 'update-results';
+            
+            if (window.app && window.app.appUpdateManager) {
+                window.app.appUpdateManager.forceShowUpdateNotification();
+                addResult(container, '→ Update notification triggered', 'info');
+            } else {
+                addResult(container, '✗ App Update Manager not found', 'error');
+            }
+        }
+
+        function testUpdateState() {
+            const container = 'update-results';
+            
+            try {
+                const updateEvents = localStorage.getItem('app-update-events');
+                if (updateEvents) {
+                    const events = JSON.parse(updateEvents);
+                    addResult(container, `✓ Found ${events.length} update events`, 'success');
+                    events.slice(-3).forEach(event => {
+                        addResult(container, `  - ${event.event} at ${new Date(event.timestamp).toLocaleString()}`, 'info');
+                    });
+                } else {
+                    addResult(container, '⚠ No update events found', 'info');
+                }
+            } catch (error) {
+                addResult(container, `✗ Update state error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testManifest() {
+            const container = 'manifest-results';
+            
+            try {
+                const response = await fetch('/manifest.json');
+                const manifest = await response.json();
+                
+                addResult(container, `✓ Manifest loaded: ${manifest.name}`, 'success');
+                addResult(container, `  - Short name: ${manifest.short_name}`, 'info');
+                addResult(container, `  - Start URL: ${manifest.start_url}`, 'info');
+                addResult(container, `  - Display: ${manifest.display}`, 'info');
+                addResult(container, `  - Icons: ${manifest.icons?.length || 0}`, 'info');
+                addResult(container, `  - Shortcuts: ${manifest.shortcuts?.length || 0}`, 'info');
+                
+            } catch (error) {
+                addResult(container, `✗ Manifest error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testIcons() {
+            const container = 'manifest-results';
+            
+            try {
+                const response = await fetch('/manifest.json');
+                const manifest = await response.json();
+                
+                if (manifest.icons) {
+                    for (const icon of manifest.icons) {
+                        try {
+                            const iconResponse = await fetch(icon.src);
+                            if (iconResponse.ok) {
+                                addResult(container, `✓ Icon ${icon.sizes}: ${icon.src}`, 'success');
+                            } else {
+                                addResult(container, `✗ Icon ${icon.sizes} not found: ${icon.src}`, 'error');
+                            }
+                        } catch (error) {
+                            addResult(container, `✗ Icon ${icon.sizes} error: ${error.message}`, 'error');
+                        }
+                    }
+                } else {
+                    addResult(container, '✗ No icons found in manifest', 'error');
+                }
+            } catch (error) {
+                addResult(container, `✗ Icon test error: ${error.message}`, 'error');
+            }
+        }
+
+        function testShortcuts() {
+            const container = 'manifest-results';
+            
+            // Test URL parameters for shortcuts
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('shortcut') === 'true') {
+                addResult(container, '✓ Launched from shortcut', 'success');
+                addResult(container, `  - Path: ${window.location.pathname}`, 'info');
+            } else {
+                addResult(container, '⚠ Not launched from shortcut', 'info');
+                addResult(container, '  - Test by using app shortcuts after installation', 'info');
+            }
+        }
+
+        async function testNotificationAPI() {
+            const container = 'api-results';
+            
+            if ('Notification' in window) {
+                addResult(container, '✓ Notification API supported', 'success');
+                addResult(container, `  - Permission: ${Notification.permission}`, 'info');
+                
+                if (Notification.permission === 'default') {
+                    try {
+                        const permission = await Notification.requestPermission();
+                        addResult(container, `  - Permission requested: ${permission}`, 'info');
+                    } catch (error) {
+                        addResult(container, `✗ Permission request error: ${error.message}`, 'error');
+                    }
+                }
+            } else {
+                addResult(container, '✗ Notification API not supported', 'error');
+            }
+        }
+
+        async function testShareAPI() {
+            const container = 'api-results';
+            
+            if (navigator.share) {
+                addResult(container, '✓ Web Share API supported', 'success');
+                
+                try {
+                    await navigator.share({
+                        title: 'PWA Test',
+                        text: 'Testing Web Share API',
+                        url: window.location.href
+                    });
+                    addResult(container, '✓ Share dialog opened', 'success');
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        addResult(container, '⚠ Share cancelled by user', 'info');
+                    } else {
+                        addResult(container, `✗ Share error: ${error.message}`, 'error');
+                    }
+                }
+            } else {
+                addResult(container, '✗ Web Share API not supported', 'error');
+            }
+        }
+
+        function testStorageAPI() {
+            const container = 'api-results';
+            
+            // Test localStorage
+            try {
+                localStorage.setItem('pwa-test', 'test-value');
+                const value = localStorage.getItem('pwa-test');
+                if (value === 'test-value') {
+                    addResult(container, '✓ localStorage working', 'success');
+                    localStorage.removeItem('pwa-test');
+                } else {
+                    addResult(container, '✗ localStorage not working', 'error');
+                }
+            } catch (error) {
+                addResult(container, `✗ localStorage error: ${error.message}`, 'error');
+            }
+            
+            // Test IndexedDB
+            if ('indexedDB' in window) {
+                addResult(container, '✓ IndexedDB supported', 'success');
+            } else {
+                addResult(container, '✗ IndexedDB not supported', 'error');
+            }
+            
+            // Test Cache API
+            if ('caches' in window) {
+                addResult(container, '✓ Cache API supported', 'success');
+            } else {
+                addResult(container, '✗ Cache API not supported', 'error');
+            }
+        }
+
+        async function runPWACheck() {
+            const container = 'pwa-results';
+            
+            addResult(container, '🔍 Running PWA Compliance Check...', 'info');
+            
+            // Check HTTPS
+            const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
+            addResult(container, `${isHTTPS ? '✓' : '✗'} HTTPS: ${location.protocol}`, isHTTPS ? 'success' : 'error');
+            
+            // Check Service Worker
+            const hasSW = 'serviceWorker' in navigator;
+            addResult(container, `${hasSW ? '✓' : '✗'} Service Worker support`, hasSW ? 'success' : 'error');
+            
+            // Check Manifest
+            try {
+                const response = await fetch('/manifest.json');
+                const manifest = await response.json();
+                const hasManifest = response.ok && manifest.name;
+                addResult(container, `${hasManifest ? '✓' : '✗'} Web App Manifest`, hasManifest ? 'success' : 'error');
+                
+                // Check required manifest fields
+                const requiredFields = ['name', 'short_name', 'start_url', 'display', 'icons'];
+                requiredFields.forEach(field => {
+                    const hasField = manifest[field];
+                    addResult(container, `  ${hasField ? '✓' : '✗'} ${field}`, hasField ? 'success' : 'error');
+                });
+                
+                // Check icons
+                if (manifest.icons) {
+                    const has192 = manifest.icons.some(icon => icon.sizes.includes('192x192'));
+                    const has512 = manifest.icons.some(icon => icon.sizes.includes('512x512'));
+                    addResult(container, `  ${has192 ? '✓' : '✗'} 192x192 icon`, has192 ? 'success' : 'error');
+                    addResult(container, `  ${has512 ? '✓' : '✗'} 512x512 icon`, has512 ? 'success' : 'error');
+                }
+                
+            } catch (error) {
+                addResult(container, `✗ Manifest check failed: ${error.message}`, 'error');
+            }
+            
+            // Check if installable
+            const isInstallable = hasSW && isHTTPS;
+            addResult(container, `${isInstallable ? '✓' : '✗'} Basic PWA criteria met`, isInstallable ? 'success' : 'error');
+            
+            // Check if installed
+            const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
+                              window.navigator.standalone === true;
+            addResult(container, `${isInstalled ? '✓' : '⚠'} Installation status: ${isInstalled ? 'Installed' : 'Not installed'}`, isInstalled ? 'success' : 'info');
+            
+            addResult(container, '✅ PWA Compliance Check Complete', 'success');
+        }
+
+        // Auto-run basic checks on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testServiceWorker();
+                testManifest();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

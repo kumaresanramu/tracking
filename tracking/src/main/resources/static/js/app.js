@@ -33,12 +33,17 @@ class ExpenseTrackerApp {
             this.ui = new UIComponents();
             this.errorHandler = new ErrorHandler();
             this.notificationService = new NotificationService();
+            this.pwaInstallManager = new PWAInstallManager();
+            this.appUpdateManager = new AppUpdateManager();
             
             // Connect error handler to UI
             this.errorHandler.setUI(this.ui);
             
             // Set up event listeners
             this.setupEventListeners();
+            
+            // Handle PWA features (shortcuts, share targets)
+            this.handlePWAFeatures();
             
             // Initialize IndexedDB for offline storage
             await this.initIndexedDB();
@@ -148,6 +153,204 @@ class ExpenseTrackerApp {
         if (themeSelector) {
             themeSelector.addEventListener('change', (e) => this.changeTheme(e.target.value));
         }
+    }
+
+    handlePWAFeatures() {
+        // Handle URL parameters for shortcuts and share targets
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Handle shortcuts
+        if (urlParams.get('shortcut') === 'true') {
+            const path = window.location.pathname;
+            console.log('PWA: Launched from shortcut:', path);
+            
+            // Handle specific shortcuts
+            if (path.includes('/expenses/add')) {
+                this.navigateToPage('expenses');
+                // Focus on the first input field
+                setTimeout(() => {
+                    const firstInput = document.querySelector('#expense-description');
+                    if (firstInput) firstInput.focus();
+                }, 100);
+            } else if (path.includes('/analytics')) {
+                this.navigateToPage('analytics');
+                if (urlParams.get('view') === 'summary') {
+                    // Show summary view
+                    this.showMonthlySummary();
+                }
+            } else if (path.includes('/dashboard')) {
+                this.navigateToPage('dashboard');
+                if (urlParams.get('view') === 'summary') {
+                    // Scroll to summary section
+                    setTimeout(() => {
+                        const summarySection = document.querySelector('.quick-insights');
+                        if (summarySection) {
+                            summarySection.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    }, 100);
+                }
+            }
+        }
+        
+        // Handle share target
+        if (urlParams.get('title') || urlParams.get('text')) {
+            this.handleShareTarget(urlParams);
+        }
+        
+        // Handle protocol handlers (web+expense://)
+        if (urlParams.get('data')) {
+            try {
+                const expenseData = JSON.parse(decodeURIComponent(urlParams.get('data')));
+                this.handleProtocolExpense(expenseData);
+            } catch (error) {
+                console.error('PWA: Failed to parse protocol expense data:', error);
+            }
+        }
+        
+        // Handle file handlers (CSV/JSON import)
+        if (window.location.pathname === '/import') {
+            this.handleFileImport();
+        }
+        
+        // Set up Web Share API if available
+        if (navigator.share) {
+            this.setupWebShare();
+        }
+        
+        // Handle app shortcuts from context menu
+        this.setupAppShortcuts();
+    }
+
+    handleShareTarget(urlParams) {
+        console.log('PWA: Handling share target');
+        
+        const title = urlParams.get('title') || '';
+        const text = urlParams.get('text') || '';
+        const url = urlParams.get('url') || '';
+        
+        // Navigate to expenses page and pre-fill form
+        this.navigateToPage('expenses');
+        
+        setTimeout(() => {
+            // Try to extract expense information from shared content
+            let description = title || text;
+            let amount = '';
+            
+            // Try to extract amount from text
+            const amountMatch = text.match(/\$?(\d+(?:\.\d{2})?)/);
+            if (amountMatch) {
+                amount = amountMatch[1];
+                description = text.replace(amountMatch[0], '').trim();
+            }
+            
+            // Pre-fill form
+            const descriptionInput = document.getElementById('expense-description');
+            const amountInput = document.getElementById('expense-amount');
+            
+            if (descriptionInput && description) {
+                descriptionInput.value = description;
+            }
+            
+            if (amountInput && amount) {
+                amountInput.value = amount;
+            }
+            
+            // Show a notification about the shared content
+            this.ui.showToast('Shared content loaded into expense form', 'success');
+        }, 200);
+    }
+
+    handleProtocolExpense(expenseData) {
+        console.log('PWA: Handling protocol expense:', expenseData);
+        
+        this.navigateToPage('expenses');
+        
+        setTimeout(() => {
+            // Pre-fill form with protocol data
+            if (expenseData.description) {
+                const descInput = document.getElementById('expense-description');
+                if (descInput) descInput.value = expenseData.description;
+            }
+            
+            if (expenseData.amount) {
+                const amountInput = document.getElementById('expense-amount');
+                if (amountInput) amountInput.value = expenseData.amount;
+            }
+            
+            if (expenseData.category) {
+                const categorySelect = document.getElementById('expense-category');
+                if (categorySelect) {
+                    // Try to find matching category
+                    const option = Array.from(categorySelect.options)
+                        .find(opt => opt.text.toLowerCase().includes(expenseData.category.toLowerCase()));
+                    if (option) categorySelect.value = option.value;
+                }
+            }
+            
+            this.ui.showToast('Expense data loaded from external app', 'success');
+        }, 200);
+    }
+
+    handleFileImport() {
+        console.log('PWA: Handling file import');
+        // This would be implemented when file handling is needed
+        // For now, redirect to main app
+        this.navigateToPage('dashboard');
+        this.ui.showToast('File import feature coming soon', 'info');
+    }
+
+    setupWebShare() {
+        // Add share buttons to analytics and reports
+        const shareButtons = document.querySelectorAll('.share-btn');
+        shareButtons.forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const shareData = {
+                    title: 'My Expense Report',
+                    text: 'Check out my expense tracking progress',
+                    url: window.location.href
+                };
+                
+                try {
+                    await navigator.share(shareData);
+                    console.log('PWA: Content shared successfully');
+                } catch (error) {
+                    console.log('PWA: Share cancelled or failed:', error);
+                }
+            });
+        });
+    }
+
+    setupAppShortcuts() {
+        // Handle keyboard shortcuts for PWA
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + N: New expense
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                this.navigateToPage('expenses');
+                setTimeout(() => {
+                    const firstInput = document.querySelector('#expense-description');
+                    if (firstInput) firstInput.focus();
+                }, 100);
+            }
+            
+            // Ctrl/Cmd + A: Analytics
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a' && !e.shiftKey) {
+                e.preventDefault();
+                this.navigateToPage('analytics');
+            }
+            
+            // Ctrl/Cmd + D: Dashboard
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                e.preventDefault();
+                this.navigateToPage('dashboard');
+            }
+        });
+    }
+
+    showMonthlySummary() {
+        // Show monthly summary in analytics
+        console.log('PWA: Showing monthly summary');
+        // This would trigger the monthly summary view
     }
 
     setupFormValidation() {

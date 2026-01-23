@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -10,15 +10,54 @@
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#2196F3">
-    <meta name="description" content="Personal expense tracking with Google Sheets integration">
+    <meta name="description" content="Personal expense tracking with Google Sheets integration, offline support, and smart notifications">
+    <meta name="keywords" content="expense tracker, finance, budget, money management, PWA">
+    <meta name="author" content="Expense Tracker Team">
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="canonical" href="https://expense-tracker.app/">
     
     <!-- Apple PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Expense Tracker">
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.svg">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-startup-image" href="/icons/icon-512x512.png">
+    
+    <!-- Microsoft PWA Meta Tags -->
+    <meta name="msapplication-TileColor" content="#2196F3">
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png">
+    <meta name="msapplication-config" content="/browserconfig.xml">
+    <meta name="msapplication-starturl" content="/">
+    <meta name="msapplication-navbutton-color" content="#2196F3">
+    
+    <!-- Additional PWA Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Expense Tracker">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="HandheldFriendly" content="true">
+    <meta name="MobileOptimized" content="width">
+    
+    <!-- Security Headers -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src 'self' https:;">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Expense Tracker - Personal Finance Manager">
+    <meta property="og:description" content="Track your expenses, manage budgets, and analyze spending patterns with our powerful PWA">
+    <meta property="og:image" content="/icons/icon-512x512.png">
+    <meta property="og:url" content="https://expense-tracker.app/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Expense Tracker">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Expense Tracker - Personal Finance Manager">
+    <meta name="twitter:description" content="Track your expenses, manage budgets, and analyze spending patterns with our powerful PWA">
+    <meta name="twitter:image" content="/icons/icon-512x512.png">
     
     <!-- Styles -->
     <link rel="stylesheet" href="/css/styles.css?nocache=20260122180000&force=reload">
@@ -386,13 +425,189 @@
             <div id="settings-page" class="page">
                 <div class="settings-container">
                     <h2>Settings</h2>
+                    
+                    <!-- Notification Settings Section -->
                     <div class="settings-section">
-                        <h3>Application Settings</h3>
+                        <h3>🔔 Notification Settings</h3>
+                        
+                        <!-- Channel Preferences -->
+                        <div class="setting-group">
+                            <h4>Notification Channels</h4>
+                            <div class="channel-settings">
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="enable-push-notifications" class="setting-checkbox">
+                                        <span class="setting-text">
+                                            <strong>📱 Push Notifications</strong>
+                                            <small>Receive notifications in your browser</small>
+                                        </span>
+                                    </label>
+                                    <div id="push-permission-status" class="permission-status"></div>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="enable-email-notifications" class="setting-checkbox">
+                                        <span class="setting-text">
+                                            <strong>📧 Email Notifications</strong>
+                                            <small>Receive notifications via email</small>
+                                        </span>
+                                    </label>
+                                    <div class="email-settings" id="email-settings" style="display: none;">
+                                        <input type="email" id="notification-email" placeholder="Enter your email address" class="setting-input">
+                                        <button type="button" id="test-email-btn" class="btn btn-small btn-secondary">Send Test Email</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="enable-in-app-notifications" class="setting-checkbox" checked>
+                                        <span class="setting-text">
+                                            <strong>🔔 In-App Notifications</strong>
+                                            <small>Show notifications within the app</small>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Notification Types -->
+                        <div class="setting-group">
+                            <h4>Notification Types</h4>
+                            
+                            <!-- Daily Reminders -->
+                            <div class="notification-type-setting">
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="enable-daily-reminder" class="setting-checkbox">
+                                        <span class="setting-text">
+                                            <strong>📝 Daily Expense Reminders</strong>
+                                            <small>Get reminded to log your daily expenses</small>
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="time-setting" id="daily-reminder-time-setting" style="display: none;">
+                                    <label for="daily-reminder-time">Reminder Time:</label>
+                                    <input type="time" id="daily-reminder-time" class="setting-input" value="20:00">
+                                </div>
+                            </div>
+                            
+                            <!-- Budget Alerts -->
+                            <div class="notification-type-setting">
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="enable-budget-alerts" class="setting-checkbox">
+                                        <span class="setting-text">
+                                            <strong>⚠️ Budget Alerts</strong>
+                                            <small>Get notified when approaching budget limits</small>
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="threshold-setting" id="budget-threshold-setting" style="display: none;">
+                                    <label for="budget-warning-threshold">Warning Threshold:</label>
+                                    <div class="threshold-input-group">
+                                        <input type="range" id="budget-warning-threshold" class="setting-range" min="50" max="100" value="80">
+                                        <span id="threshold-value">80%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Weekly Summary -->
+                            <div class="notification-type-setting">
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="enable-weekly-summary" class="setting-checkbox">
+                                        <span class="setting-text">
+                                            <strong>📊 Weekly Summary</strong>
+                                            <small>Receive weekly spending summaries</small>
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="weekly-setting" id="weekly-summary-setting" style="display: none;">
+                                    <div class="setting-row">
+                                        <label for="weekly-summary-day">Day:</label>
+                                        <select id="weekly-summary-day" class="setting-select">
+                                            <option value="1">Monday</option>
+                                            <option value="2">Tuesday</option>
+                                            <option value="3">Wednesday</option>
+                                            <option value="4">Thursday</option>
+                                            <option value="5">Friday</option>
+                                            <option value="6">Saturday</option>
+                                            <option value="7" selected>Sunday</option>
+                                        </select>
+                                    </div>
+                                    <div class="setting-row">
+                                        <label for="weekly-summary-time">Time:</label>
+                                        <input type="time" id="weekly-summary-time" class="setting-input" value="09:00">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Streak Rewards -->
+                            <div class="notification-type-setting">
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="enable-streak-rewards" class="setting-checkbox">
+                                        <span class="setting-text">
+                                            <strong>🎉 Streak Rewards</strong>
+                                            <small>Celebrate your expense tracking streaks</small>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Badges -->
+                            <div class="notification-type-setting">
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="enable-badges" class="setting-checkbox">
+                                        <span class="setting-text">
+                                            <strong>🏆 Achievement Badges</strong>
+                                            <small>Get notified about new achievements</small>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Quiet Hours -->
+                        <div class="setting-group">
+                            <h4>🌙 Quiet Hours</h4>
+                            <p class="setting-description">Set times when you don't want to receive notifications</p>
+                            <div class="quiet-hours-setting">
+                                <div class="setting-row">
+                                    <label for="quiet-hours-start">From:</label>
+                                    <input type="time" id="quiet-hours-start" class="setting-input" value="22:00">
+                                </div>
+                                <div class="setting-row">
+                                    <label for="quiet-hours-end">To:</label>
+                                    <input type="time" id="quiet-hours-end" class="setting-input" value="08:00">
+                                </div>
+                                <div id="quiet-hours-status" class="quiet-hours-status"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="settings-actions">
+                            <button type="button" id="save-notification-settings" class="btn btn-primary">💾 Save Settings</button>
+                            <button type="button" id="reset-notification-settings" class="btn btn-secondary">🔄 Reset to Defaults</button>
+                            <button type="button" id="test-notifications" class="btn btn-secondary">🧪 Test Notifications</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Application Settings Section -->
+                    <div class="settings-section">
+                        <h3>⚙️ Application Settings</h3>
                         <div class="setting-item">
-                            <label>Theme</label>
-                            <select id="theme-selector" onchange="toggleTheme(this.value)">
-                                <option value="light">Light</option>
-                                <option value="dark">Dark</option>
+                            <label class="setting-label">
+                                <span class="setting-text">
+                                    <strong>Theme</strong>
+                                    <small>Choose your preferred color scheme</small>
+                                </span>
+                            </label>
+                            <select id="theme-selector" onchange="toggleTheme(this.value)" class="setting-select">
+                                <option value="light">☀️ Light</option>
+                                <option value="dark">🌙 Dark</option>
                             </select>
                         </div>
                     </div>
@@ -407,6 +622,9 @@
     <script src="/js/analytics.js?nocache=20260122180000&force=reload"></script>
     <script src="/js/ui-components.js?nocache=20260122180000&force=reload"></script>
     <script src="/js/notification-service.js?nocache=20260122180000&force=reload"></script>
+    <script src="/js/notification-settings.js?nocache=20260122180000&force=reload"></script>
+    <script src="/js/pwa-install-manager.js?nocache=20260122180000&force=reload"></script>
+    <script src="/js/app-update-manager.js?nocache=20260122180000&force=reload"></script>
     <script src="/js/app.js?nocache=20260122180000&force=reload"></script>
 
     <!-- Cache Detection and Force Reload Script -->
