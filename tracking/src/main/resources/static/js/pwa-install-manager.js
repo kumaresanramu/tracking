@@ -17,11 +17,16 @@ class PWAInstallManager {
         this.init();
     }
 
-    init() {
+    async init() {
         this.loadInstallState();
         this.setupEventListeners();
-        this.checkInstallability();
+        await this.checkInstallability();
         this.createCustomInstallUI();
+        
+        // Add fallback mechanism - show install prompt after delay even if beforeinstallprompt doesn't fire
+        setTimeout(() => {
+            this.evaluateInstallPromptTimingFallback();
+        }, this.minSessionTimeBeforePrompt + 1000); // Wait a bit longer than minimum session time
     }
 
     loadInstallState() {
@@ -86,14 +91,14 @@ class PWAInstallManager {
         }
     }
 
-    checkInstallability() {
+    async checkInstallability() {
         // Check PWA criteria
         const criteria = {
             hasManifest: this.checkManifest(),
             hasServiceWorker: 'serviceWorker' in navigator,
             isHTTPS: location.protocol === 'https:' || location.hostname === 'localhost',
-            hasIcons: this.checkIcons(),
-            hasStartUrl: this.checkStartUrl()
+            hasIcons: await this.checkIcons(),
+            hasStartUrl: await this.checkStartUrl()
         };
 
         const isInstallable = Object.values(criteria).every(criterion => criterion);
@@ -173,16 +178,50 @@ class PWAInstallManager {
         return true;
     }
 
-    showInstallPrompt() {
-        if (!this.deferredPrompt) {
-            console.log('PWA Install: No deferred prompt available, showing custom UI');
-            this.showCustomInstallUI();
-            return;
+    async evaluateInstallPromptTimingFallback() {
+        // Fallback method for when beforeinstallprompt event doesn't fire
+        console.log('PWA Install: Evaluating fallback install prompt timing');
+        
+        if (this.isInstalled) {
+            console.log('PWA Install: App already installed, skipping fallback prompt');
+            return false;
         }
 
+        if (this.installPromptShown) {
+            console.log('PWA Install: Prompt already shown, skipping fallback');
+            return false;
+        }
+
+        if (this.installPromptDismissed && this.installPromptDismissedAt) {
+            const timeSinceDismissal = Date.now() - this.installPromptDismissedAt;
+            if (timeSinceDismissal < this.dismissCooldownPeriod) {
+                console.log('PWA Install: Still in cooldown period, skipping fallback');
+                return false;
+            }
+        }
+
+        // Check if PWA criteria are met
+        const isInstallable = await this.checkInstallability();
+        if (!isInstallable) {
+            console.log('PWA Install: App does not meet PWA criteria, skipping fallback');
+            return false;
+        }
+
+        console.log('PWA Install: Showing fallback install prompt');
+        this.showInstallPrompt();
+        return true;
+    }
+
+    showInstallPrompt() {
         console.log('PWA Install: Showing install prompt');
         this.installPromptShown = true;
         this.saveInstallState();
+
+        if (!this.deferredPrompt) {
+            console.log('PWA Install: No deferred prompt available, showing custom UI with instructions');
+            this.showCustomInstallUI();
+            return;
+        }
 
         // Show the custom install UI first
         this.showCustomInstallUI();
@@ -390,7 +429,7 @@ class PWAInstallManager {
 
     async handleInstallClick() {
         if (!this.deferredPrompt) {
-            console.log('PWA Install: No deferred prompt available');
+            console.log('PWA Install: No deferred prompt available, showing manual install instructions');
             this.showInstallInstructions();
             return;
         }
@@ -435,20 +474,88 @@ class PWAInstallManager {
         // Show platform-specific install instructions
         const userAgent = navigator.userAgent.toLowerCase();
         let instructions = '';
+        let title = 'Install Expense Tracker';
 
         if (userAgent.includes('chrome') && userAgent.includes('android')) {
-            instructions = 'Tap the menu (⋮) and select "Add to Home screen"';
+            title = 'Install on Android Chrome';
+            instructions = `
+                <p>To install this app on your Android device:</p>
+                <ol>
+                    <li>Tap the menu button (⋮) in the top-right corner</li>
+                    <li>Select "Add to Home screen" or "Install app"</li>
+                    <li>Tap "Add" or "Install" to confirm</li>
+                </ol>
+                <p>The app will be added to your home screen and app drawer.</p>
+            `;
         } else if (userAgent.includes('safari') && userAgent.includes('iphone')) {
-            instructions = 'Tap the share button (□↗) and select "Add to Home Screen"';
+            title = 'Install on iPhone Safari';
+            instructions = `
+                <p>To install this app on your iPhone:</p>
+                <ol>
+                    <li>Tap the share button (□↗) at the bottom of the screen</li>
+                    <li>Scroll down and tap "Add to Home Screen"</li>
+                    <li>Tap "Add" to confirm</li>
+                </ol>
+                <p>The app will appear on your home screen like a native app.</p>
+            `;
         } else if (userAgent.includes('chrome')) {
-            instructions = 'Click the install button in the address bar or use Chrome menu > "Install Expense Tracker"';
+            title = 'Install on Desktop Chrome';
+            instructions = `
+                <p>To install this app on your computer:</p>
+                <ol>
+                    <li>Look for an install icon (⊕) in the address bar</li>
+                    <li>Click it and select "Install"</li>
+                    <li>Or use Chrome menu → "Install Expense Tracker"</li>
+                </ol>
+                <p>The app will open in its own window and appear in your applications.</p>
+            `;
         } else if (userAgent.includes('firefox')) {
-            instructions = 'Look for the install icon in the address bar';
+            title = 'Install on Firefox';
+            instructions = `
+                <p>To install this app in Firefox:</p>
+                <ol>
+                    <li>Look for the install icon in the address bar</li>
+                    <li>Click it to install the app</li>
+                    <li>Or bookmark this page for quick access</li>
+                </ol>
+                <p>Firefox support for PWA installation may vary.</p>
+            `;
+        } else if (userAgent.includes('edg')) {
+            title = 'Install on Microsoft Edge';
+            instructions = `
+                <p>To install this app in Edge:</p>
+                <ol>
+                    <li>Click the menu button (⋯) in the top-right</li>
+                    <li>Select "Apps" → "Install this site as an app"</li>
+                    <li>Click "Install" to confirm</li>
+                </ol>
+                <p>The app will be available in your Start menu and taskbar.</p>
+            `;
         } else {
-            instructions = 'Look for install options in your browser menu';
+            instructions = `
+                <p>To install this app:</p>
+                <ol>
+                    <li>Look for install options in your browser menu</li>
+                    <li>Check the address bar for an install icon</li>
+                    <li>Or bookmark this page for easy access</li>
+                </ol>
+                <p>Installation options may vary by browser.</p>
+            `;
         }
 
-        this.showMessage('Install Instructions', instructions, 'info');
+        instructions += `
+            <div style="margin-top: 1rem; padding: 1rem; background: #f0f8ff; border-radius: 8px; border-left: 4px solid #2196F3;">
+                <strong>Benefits of installing:</strong>
+                <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                    <li>Works offline</li>
+                    <li>Faster loading</li>
+                    <li>Desktop/home screen access</li>
+                    <li>Push notifications</li>
+                </ul>
+            </div>
+        `;
+
+        this.showMessage(title, instructions, 'info');
     }
 
     showInstallSuccessMessage() {

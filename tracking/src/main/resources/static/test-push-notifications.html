@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push Notification Test - Expense Tracker</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1976D2; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .info-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .info-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .info-card .value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔔 Push Notification Test Center</h1>
+    <p>This page helps diagnose and test push notification functionality.</p>
+
+    <!-- System Status -->
+    <div class="test-section">
+        <h2>📊 System Status</h2>
+        <div class="info-grid" id="system-status">
+            <div class="info-card">
+                <h3>Browser Support</h3>
+                <div class="value" id="browser-support">Checking...</div>
+            </div>
+            <div class="info-card">
+                <h3>Permission Status</h3>
+                <div class="value" id="permission-status">Checking...</div>
+            </div>
+            <div class="info-card">
+                <h3>Service Worker</h3>
+                <div class="value" id="sw-status">Checking...</div>
+            </div>
+            <div class="info-card">
+                <h3>Push Subscription</h3>
+                <div class="value" id="subscription-status">Checking...</div>
+            </div>
+        </div>
+        <button onclick="refreshSystemStatus()">🔄 Refresh Status</button>
+    </div>
+
+    <!-- Permission Management -->
+    <div class="test-section">
+        <h2>🔐 Permission Management</h2>
+        <div id="permission-info"></div>
+        <button onclick="requestPermission()">📱 Request Push Permission</button>
+        <button onclick="subscribeToPush()">✅ Subscribe to Push</button>
+        <button onclick="unsubscribeFromPush()">❌ Unsubscribe</button>
+    </div>
+
+    <!-- Test Notifications -->
+    <div class="test-section">
+        <h2>🧪 Test Notifications</h2>
+        <button onclick="testPushNotification()">📤 Test Push Notification</button>
+        <button onclick="testBudgetAlert()">⚠️ Test Budget Alert (85%)</button>
+        <button onclick="testPaymentReminder()">💰 Test Payment Reminder</button>
+        <button onclick="triggerBudgetCheck()">📊 Trigger Budget Check</button>
+    </div>
+
+    <!-- Server Status -->
+    <div class="test-section">
+        <h2>🖥️ Server Status</h2>
+        <div id="server-status"></div>
+        <button onclick="checkServerStatus()">🔍 Check Server Status</button>
+    </div>
+
+    <!-- Debug Log -->
+    <div class="test-section">
+        <h2>📝 Debug Log</h2>
+        <div class="log" id="debug-log"></div>
+        <button onclick="clearLog()">🗑️ Clear Log</button>
+    </div>
+
+    <script>
+        let pushSubscription = null;
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Push Notification Test Center initialized');
+            refreshSystemStatus();
+            checkServerStatus();
+        });
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('debug-log');
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('debug-log').innerHTML = '';
+        }
+
+        function showStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `<div class="status ${type}">${message}</div>`;
+            }
+        }
+
+        async function refreshSystemStatus() {
+            log('🔄 Refreshing system status...');
+            
+            // Check browser support
+            const browserSupport = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+            document.getElementById('browser-support').textContent = browserSupport ? '✅ Supported' : '❌ Not Supported';
+            
+            // Check permission status
+            const permission = 'Notification' in window ? Notification.permission : 'not-supported';
+            document.getElementById('permission-status').textContent = 
+                permission === 'granted' ? '✅ Granted' :
+                permission === 'denied' ? '❌ Denied' :
+                permission === 'default' ? '⏳ Default' : '❌ Not Supported';
+            
+            // Check service worker
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    document.getElementById('sw-status').textContent = registration ? '✅ Registered' : '❌ Not Registered';
+                    
+                    if (registration) {
+                        // Check push subscription
+                        const subscription = await registration.pushManager.getSubscription();
+                        pushSubscription = subscription;
+                        document.getElementById('subscription-status').textContent = subscription ? '✅ Subscribed' : '❌ Not Subscribed';
+                        
+                        if (subscription) {
+                            log(`📱 Push subscription active: ${subscription.endpoint.substring(0, 50)}...`);
+                        }
+                    }
+                } catch (error) {
+                    document.getElementById('sw-status').textContent = '❌ Error';
+                    log(`❌ Service worker error: ${error.message}`);
+                }
+            } else {
+                document.getElementById('sw-status').textContent = '❌ Not Supported';
+            }
+        }
+
+        async function requestPermission() {
+            log('📱 Requesting push notification permission...');
+            
+            if (!('Notification' in window)) {
+                log('❌ This browser does not support notifications');
+                return;
+            }
+            
+            try {
+                const permission = await Notification.requestPermission();
+                log(`📱 Permission result: ${permission}`);
+                
+                if (permission === 'granted') {
+                    log('✅ Push notification permission granted');
+                    await refreshSystemStatus();
+                } else {
+                    log('❌ Push notification permission denied');
+                }
+            } catch (error) {
+                log(`❌ Error requesting permission: ${error.message}`);
+            }
+        }
+
+        async function subscribeToPush() {
+            log('📤 Subscribing to push notifications...');
+            
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                log('❌ Push messaging is not supported');
+                return;
+            }
+            
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                
+                // Get VAPID public key from server
+                const vapidResponse = await fetch('/api/push-subscriptions/vapid-public-key');
+                if (!vapidResponse.ok) {
+                    throw new Error('Failed to get VAPID public key');
+                }
+                const vapidPublicKey = await vapidResponse.text();
+                log(`🔑 Got VAPID public key: ${vapidPublicKey.substring(0, 20)}...`);
+                
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+                });
+                
+                // Send subscription to server
+                const response = await fetch('/api/push-subscriptions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        endpoint: subscription.endpoint,
+                        p256dhKey: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('p256dh')))),
+                        authKey: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth')))),
+                        userAgent: navigator.userAgent
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save push subscription');
+                }
+                
+                pushSubscription = subscription;
+                log('✅ Successfully subscribed to push notifications');
+                await refreshSystemStatus();
+                
+            } catch (error) {
+                log(`❌ Error subscribing to push: ${error.message}`);
+            }
+        }
+
+        async function unsubscribeFromPush() {
+            log('📤 Unsubscribing from push notifications...');
+            
+            try {
+                if (pushSubscription) {
+                    await pushSubscription.unsubscribe();
+                    
+                    // Remove subscription from server
+                    await fetch('/api/push-subscriptions/unsubscribe', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            endpoint: pushSubscription.endpoint
+                        })
+                    });
+                    
+                    pushSubscription = null;
+                    log('✅ Successfully unsubscribed from push notifications');
+                } else {
+                    log('ℹ️ No active push subscription found');
+                }
+                
+                await refreshSystemStatus();
+                
+            } catch (error) {
+                log(`❌ Error unsubscribing from push: ${error.message}`);
+            }
+        }
+
+        async function testPushNotification() {
+            log('🧪 Testing push notification...');
+            
+            try {
+                const response = await fetch('/api/test/notifications/test-push', {
+                    method: 'POST'
+                });
+                
+                const result = await response.text();
+                
+                if (response.ok) {
+                    log(`✅ ${result}`);
+                } else {
+                    log(`❌ Test failed: ${result}`);
+                }
+            } catch (error) {
+                log(`❌ Error testing push notification: ${error.message}`);
+            }
+        }
+
+        async function testBudgetAlert() {
+            log('🧪 Testing budget alert...');
+            
+            try {
+                const response = await fetch('/api/test/notifications/test-budget-alert?percentage=85', {
+                    method: 'POST'
+                });
+                
+                const result = await response.text();
+                
+                if (response.ok) {
+                    log(`✅ ${result}`);
+                } else {
+                    log(`❌ Test failed: ${result}`);
+                }
+            } catch (error) {
+                log(`❌ Error testing budget alert: ${error.message}`);
+            }
+        }
+
+        async function testPaymentReminder() {
+            log('🧪 Testing payment reminder...');
+            
+            try {
+                const response = await fetch('/api/test/notifications/test-payment-reminder', {
+                    method: 'POST'
+                });
+                
+                const result = await response.text();
+                
+                if (response.ok) {
+                    log(`✅ ${result}`);
+                } else {
+                    log(`❌ Test failed: ${result}`);
+                }
+            } catch (error) {
+                log(`❌ Error testing payment reminder: ${error.message}`);
+            }
+        }
+
+        async function triggerBudgetCheck() {
+            log('🧪 Triggering budget check...');
+            
+            try {
+                const response = await fetch('/api/test/notifications/trigger-budget-check?expenseAmount=8500', {
+                    method: 'POST'
+                });
+                
+                const result = await response.text();
+                
+                if (response.ok) {
+                    log(`✅ ${result}`);
+                } else {
+                    log(`❌ Test failed: ${result}`);
+                }
+            } catch (error) {
+                log(`❌ Error triggering budget check: ${error.message}`);
+            }
+        }
+
+        async function checkServerStatus() {
+            log('🔍 Checking server status...');
+            
+            try {
+                const response = await fetch('/api/test/notifications/status');
+                
+                if (response.ok) {
+                    const status = await response.json();
+                    
+                    const statusHtml = `
+                        <div class="info-grid">
+                            <div class="info-card">
+                                <h3>Push Service</h3>
+                                <div class="value">${status.pushServiceAvailable ? '✅ Available' : '❌ Unavailable'}</div>
+                            </div>
+                            <div class="info-card">
+                                <h3>Budget Alerts</h3>
+                                <div class="value">${status.budgetAlertsEnabled ? '✅ Enabled' : '❌ Disabled'}</div>
+                            </div>
+                            <div class="info-card">
+                                <h3>Daily Reminders</h3>
+                                <div class="value">${status.dailyRemindersEnabled ? '✅ Enabled' : '❌ Disabled'}</div>
+                            </div>
+                            <div class="info-card">
+                                <h3>Unread Notifications</h3>
+                                <div class="value">${status.unreadNotificationCount}</div>
+                            </div>
+                            <div class="info-card">
+                                <h3>Budget Threshold</h3>
+                                <div class="value">${status.budgetWarningThreshold}%</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.getElementById('server-status').innerHTML = statusHtml;
+                    log('✅ Server status retrieved successfully');
+                } else {
+                    log(`❌ Failed to get server status: ${response.status}`);
+                }
+            } catch (error) {
+                log(`❌ Error checking server status: ${error.message}`);
+            }
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/-/g, '+')
+                .replace(/_/g, '/');
+            
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+    </script>
+</body>
+</html>

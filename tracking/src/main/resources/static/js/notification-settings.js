@@ -9,9 +9,7 @@ class NotificationSettingsManager {
         this.permissionStatus = null;
         
         this.initializeEventListeners();
-        this.loadSettings();
-        this.loadPermissionStatus();
-        this.checkPushPermission();
+        this.loadSettings(); // This will now handle the full initialization flow
     }
 
     initializeEventListeners() {
@@ -59,6 +57,11 @@ class NotificationSettingsManager {
             this.testEmailNotification();
         });
         
+        // Add click handler for push permission status to refresh
+        document.getElementById('push-permission-status')?.addEventListener('click', () => {
+            this.refreshPushPermissionStatus();
+        });
+        
         // Update quiet hours status
         document.getElementById('quiet-hours-start')?.addEventListener('change', () => {
             this.updateQuietHoursStatus();
@@ -76,7 +79,12 @@ class NotificationSettingsManager {
                 this.currentSettings = await response.json();
                 this.populateSettingsForm();
                 this.updateQuietHoursStatus();
+                
+                // Load permission status after settings are loaded
                 await this.loadPermissionStatus();
+                
+                // Check browser push permission after everything else is loaded
+                await this.checkPushPermission();
             } else {
                 console.error('Failed to load notification settings');
                 this.showToast('Failed to load settings', 'error');
@@ -104,18 +112,27 @@ class NotificationSettingsManager {
     updatePermissionStatusUI() {
         if (!this.permissionStatus) return;
         
-        // Update push notification status
+        // Update push notification status - prioritize browser permission over server status
         const pushStatus = document.getElementById('push-permission-status');
         if (pushStatus) {
-            if (this.permissionStatus.pushEnabled && this.permissionStatus.pushAvailable) {
+            // Check browser permission first
+            const browserPermission = 'Notification' in window ? Notification.permission : 'not-supported';
+            
+            if (browserPermission === 'not-supported') {
+                pushStatus.className = 'permission-status not-supported';
+                pushStatus.textContent = '❌ Push notifications not supported in this browser';
+            } else if (browserPermission === 'denied') {
+                pushStatus.className = 'permission-status denied';
+                pushStatus.textContent = '❌ Push notifications blocked. Please enable in browser settings.';
+            } else if (this.permissionStatus.pushEnabled && this.permissionStatus.pushAvailable) {
                 pushStatus.className = 'permission-status granted';
                 pushStatus.textContent = '✅ Push notifications enabled and working';
-            } else if (this.permissionStatus.pushEnabled && !this.permissionStatus.pushAvailable) {
-                pushStatus.className = 'permission-status denied';
-                pushStatus.textContent = '❌ Push notifications enabled but not available. Please check browser permissions.';
+            } else if (browserPermission === 'granted') {
+                pushStatus.className = 'permission-status default';
+                pushStatus.textContent = '⏳ Click to enable push notifications';
             } else {
                 pushStatus.className = 'permission-status default';
-                pushStatus.textContent = '🔕 Push notifications disabled';
+                pushStatus.textContent = '⏳ Click to enable push notifications';
             }
         }
         
@@ -281,6 +298,14 @@ class NotificationSettingsManager {
         }
     }
 
+    async refreshPushPermissionStatus() {
+        // Re-check browser permission and update UI accordingly
+        await this.checkPushPermission();
+        
+        // Also refresh server-side permission status
+        await this.loadPermissionStatus();
+    }
+
     async requestPushPermission() {
         if (!('Notification' in window)) {
             throw new Error('This browser does not support notifications');
@@ -381,7 +406,6 @@ class NotificationSettingsManager {
         }
         
         const permission = Notification.permission;
-        this.updatePushPermissionStatus(permission);
         
         // Check if already subscribed
         if (permission === 'granted' && 'serviceWorker' in navigator) {
@@ -391,10 +415,19 @@ class NotificationSettingsManager {
                 if (subscription) {
                     this.pushSubscription = subscription;
                     document.getElementById('enable-push-notifications').checked = true;
+                    this.updatePushPermissionStatus('granted');
+                    return;
                 }
             } catch (error) {
                 console.error('Error checking push subscription:', error);
             }
+        }
+        
+        // Update status based on browser permission
+        if (permission === 'granted') {
+            this.updatePushPermissionStatus('default'); // Granted but not subscribed
+        } else {
+            this.updatePushPermissionStatus(permission);
         }
     }
 
@@ -406,10 +439,24 @@ class NotificationSettingsManager {
         
         switch (status) {
             case 'granted':
-                statusElement.textContent = '✅ Push notifications enabled';
+                statusElement.innerHTML = '✅ Push notifications enabled';
                 break;
             case 'denied':
-                statusElement.textContent = '❌ Push notifications blocked. Please enable in browser settings.';
+                statusElement.innerHTML = `
+                    ❌ Push notifications blocked. 
+                    <div style="margin-top: 0.5rem;">
+                        <strong>To enable:</strong>
+                        <ol style="margin: 0.5rem 0; padding-left: 1.5rem; font-size: 0.85rem;">
+                            <li>Click the 🔒 or ⓘ icon in your browser's address bar</li>
+                            <li>Find "Notifications" and change it to "Allow"</li>
+                            <li>Refresh this page and try again</li>
+                        </ol>
+                        <button onclick="window.notificationSettingsManager.showBrowserInstructions()" 
+                                class="btn btn-small btn-secondary" style="margin-top: 0.5rem;">
+                            📖 Detailed Instructions
+                        </button>
+                    </div>
+                `;
                 break;
             case 'default':
                 statusElement.textContent = '⏳ Click to enable push notifications';
@@ -630,6 +677,254 @@ class NotificationSettingsManager {
             outputArray[i] = rawData.charCodeAt(i);
         }
         return outputArray;
+    }
+
+    showBrowserInstructions() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        let instructions = '';
+        let title = 'Enable Push Notifications';
+
+        if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
+            instructions = `
+                <strong>For Chrome:</strong>
+                <ol style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                    <li>Click the 🔒 (lock) or ⓘ (info) icon in the address bar</li>
+                    <li>Find "Notifications" in the permissions list</li>
+                    <li>Change it from "Block" to "Allow"</li>
+                    <li>Refresh this page</li>
+                    <li>Click the push notifications toggle again</li>
+                </ol>
+                <p><strong>Alternative:</strong> Go to Chrome Settings → Privacy and Security → Site Settings → Notifications → Add this site to "Allowed to send notifications"</p>
+            `;
+        } else if (userAgent.includes('firefox')) {
+            instructions = `
+                <strong>For Firefox:</strong>
+                <ol style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                    <li>Click the 🔒 (shield) icon in the address bar</li>
+                    <li>Click "Connection is secure"</li>
+                    <li>Click "More information"</li>
+                    <li>Go to "Permissions" tab</li>
+                    <li>Find "Receive Notifications" and select "Allow"</li>
+                    <li>Refresh this page</li>
+                </ol>
+                <p><strong>Alternative:</strong> Go to Firefox Settings → Privacy & Security → Permissions → Notifications → Settings → Add this site</p>
+            `;
+        } else if (userAgent.includes('safari')) {
+            instructions = `
+                <strong>For Safari:</strong>
+                <ol style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                    <li>Go to Safari → Preferences (or Settings)</li>
+                    <li>Click "Websites" tab</li>
+                    <li>Select "Notifications" from the left sidebar</li>
+                    <li>Find this website and change to "Allow"</li>
+                    <li>Refresh this page</li>
+                </ol>
+                <p><strong>Note:</strong> Safari may require you to interact with the page before showing notification permission.</p>
+            `;
+        } else if (userAgent.includes('edg')) {
+            instructions = `
+                <strong>For Microsoft Edge:</strong>
+                <ol style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                    <li>Click the 🔒 (lock) or ⓘ (info) icon in the address bar</li>
+                    <li>Find "Notifications" and change to "Allow"</li>
+                    <li>Refresh this page</li>
+                </ol>
+                <p><strong>Alternative:</strong> Go to Edge Settings → Cookies and site permissions → Notifications → Add this site to allowed list</p>
+            `;
+        } else {
+            instructions = `
+                <strong>General Instructions:</strong>
+                <ol style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                    <li>Look for a lock 🔒 or info ⓘ icon in your browser's address bar</li>
+                    <li>Click it to open site permissions</li>
+                    <li>Find "Notifications" and change it to "Allow"</li>
+                    <li>Refresh this page and try again</li>
+                </ol>
+                <p>If you can't find these options, check your browser's settings under Privacy or Site Permissions.</p>
+            `;
+        }
+
+        this.showModal(title, instructions);
+    }
+
+    showModal(title, content) {
+        // Create modal HTML
+        const modal = document.createElement('div');
+        modal.className = 'notification-instructions-modal';
+        modal.innerHTML = `
+            <div class="modal-overlay" onclick="this.parentElement.remove()">
+                <div class="modal-content" onclick="event.stopPropagation()">
+                    <div class="modal-header">
+                        <h3>${title}</h3>
+                        <button class="modal-close" onclick="this.closest('.notification-instructions-modal').remove()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        ${content}
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" onclick="this.closest('.notification-instructions-modal').remove()">Got it!</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add modal styles if not already present
+        if (!document.querySelector('#notification-modal-styles')) {
+            const style = document.createElement('style');
+            style.id = 'notification-modal-styles';
+            style.textContent = `
+                .notification-instructions-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    z-index: 10000;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                }
+
+                .notification-instructions-modal .modal-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.6);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                    animation: fadeIn 0.2s ease;
+                }
+
+                .notification-instructions-modal .modal-content {
+                    background: var(--card-background, white);
+                    border-radius: 12px;
+                    max-width: 500px;
+                    width: 100%;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                    animation: slideIn 0.3s ease;
+                }
+
+                .notification-instructions-modal .modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 20px 24px 0 24px;
+                    border-bottom: 1px solid var(--border-color, #e0e0e0);
+                    margin-bottom: 20px;
+                }
+
+                .notification-instructions-modal .modal-header h3 {
+                    margin: 0;
+                    color: var(--text-primary, #333);
+                    font-size: 18px;
+                    font-weight: 600;
+                }
+
+                .notification-instructions-modal .modal-close {
+                    background: none;
+                    border: none;
+                    font-size: 24px;
+                    cursor: pointer;
+                    color: var(--text-secondary, #666);
+                    padding: 0;
+                    width: 30px;
+                    height: 30px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 50%;
+                    transition: background-color 0.2s ease;
+                }
+
+                .notification-instructions-modal .modal-close:hover {
+                    background-color: var(--hover-background, #f5f5f5);
+                }
+
+                .notification-instructions-modal .modal-body {
+                    padding: 0 24px 20px 24px;
+                    color: var(--text-primary, #333);
+                    line-height: 1.6;
+                }
+
+                .notification-instructions-modal .modal-body ol {
+                    margin: 12px 0;
+                    padding-left: 20px;
+                }
+
+                .notification-instructions-modal .modal-body li {
+                    margin: 8px 0;
+                }
+
+                .notification-instructions-modal .modal-body p {
+                    margin: 16px 0;
+                    color: var(--text-secondary, #666);
+                    font-size: 14px;
+                }
+
+                .notification-instructions-modal .modal-footer {
+                    padding: 20px 24px;
+                    border-top: 1px solid var(--border-color, #e0e0e0);
+                    display: flex;
+                    justify-content: flex-end;
+                }
+
+                .notification-instructions-modal .btn {
+                    padding: 10px 20px;
+                    border: none;
+                    border-radius: 6px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .notification-instructions-modal .btn-primary {
+                    background: var(--primary-color, #2196F3);
+                    color: white;
+                }
+
+                .notification-instructions-modal .btn-primary:hover {
+                    background: var(--primary-hover, #1976D2);
+                }
+
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+
+                @keyframes slideIn {
+                    from { 
+                        opacity: 0;
+                        transform: translateY(-20px) scale(0.95);
+                    }
+                    to { 
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .notification-instructions-modal .modal-content {
+                        margin: 10px;
+                        max-height: 90vh;
+                    }
+                    
+                    .notification-instructions-modal .modal-header,
+                    .notification-instructions-modal .modal-body,
+                    .notification-instructions-modal .modal-footer {
+                        padding-left: 16px;
+                        padding-right: 16px;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Add modal to page
+        document.body.appendChild(modal);
     }
 
     showToast(message, type = 'info') {

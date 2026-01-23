@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Worker Test - Expense Tracker</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1976D2; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .info-card {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .info-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .info-card .value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Service Worker Test Center</h1>
+    <p>This page helps diagnose service worker issues and caching problems.</p>
+
+    <!-- Service Worker Status -->
+    <div class="test-section">
+        <h2>📊 Service Worker Status</h2>
+        <div class="info-card">
+            <h3>Registration Status</h3>
+            <div class="value" id="sw-registration-status">Checking...</div>
+        </div>
+        <div class="info-card">
+            <h3>Active State</h3>
+            <div class="value" id="sw-active-status">Checking...</div>
+        </div>
+        <div class="info-card">
+            <h3>Cache Status</h3>
+            <div class="value" id="cache-status">Checking...</div>
+        </div>
+        <button onclick="checkServiceWorkerStatus()">🔄 Refresh Status</button>
+        <button onclick="unregisterServiceWorker()">❌ Unregister SW</button>
+        <button onclick="registerServiceWorker()">✅ Register SW</button>
+    </div>
+
+    <!-- Cache Management -->
+    <div class="test-section">
+        <h2>💾 Cache Management</h2>
+        <div id="cache-info"></div>
+        <button onclick="listCaches()">📋 List All Caches</button>
+        <button onclick="clearAllCaches()">🗑️ Clear All Caches</button>
+        <button onclick="testCaching()">🧪 Test Caching</button>
+    </div>
+
+    <!-- Error Monitoring -->
+    <div class="test-section">
+        <h2>⚠️ Error Monitoring</h2>
+        <div id="error-info">
+            <p>This section will show any service worker errors detected.</p>
+        </div>
+        <button onclick="clearErrors()">🧹 Clear Error Log</button>
+    </div>
+
+    <!-- Debug Log -->
+    <div class="test-section">
+        <h2>📝 Debug Log</h2>
+        <div class="log" id="debug-log"></div>
+        <button onclick="clearLog()">🗑️ Clear Log</button>
+    </div>
+
+    <script>
+        let errorLog = [];
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Service Worker Test Center initialized');
+            checkServiceWorkerStatus();
+            setupErrorMonitoring();
+        });
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('debug-log');
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('debug-log').innerHTML = '';
+        }
+
+        function setupErrorMonitoring() {
+            // Monitor console errors
+            const originalError = console.error;
+            console.error = function(...args) {
+                const errorMessage = args.join(' ');
+                if (errorMessage.includes('chrome-extension') || 
+                    errorMessage.includes('Cache') || 
+                    errorMessage.includes('sw.js')) {
+                    errorLog.push({
+                        timestamp: new Date().toISOString(),
+                        message: errorMessage,
+                        type: 'console.error'
+                    });
+                    updateErrorDisplay();
+                }
+                originalError.apply(console, args);
+            };
+
+            // Monitor unhandled promise rejections
+            window.addEventListener('unhandledrejection', event => {
+                errorLog.push({
+                    timestamp: new Date().toISOString(),
+                    message: event.reason.toString(),
+                    type: 'unhandledrejection'
+                });
+                updateErrorDisplay();
+            });
+
+            log('✅ Error monitoring setup complete');
+        }
+
+        function updateErrorDisplay() {
+            const errorInfo = document.getElementById('error-info');
+            if (errorLog.length === 0) {
+                errorInfo.innerHTML = '<p class="status success">No errors detected</p>';
+                return;
+            }
+
+            const recentErrors = errorLog.slice(-10); // Show last 10 errors
+            const errorHtml = recentErrors.map(error => `
+                <div class="status ${error.message.includes('chrome-extension') ? 'warning' : 'error'}">
+                    <strong>${error.type}</strong> at ${new Date(error.timestamp).toLocaleTimeString()}<br>
+                    ${error.message}
+                </div>
+            `).join('');
+
+            errorInfo.innerHTML = errorHtml;
+        }
+
+        function clearErrors() {
+            errorLog = [];
+            updateErrorDisplay();
+            log('🧹 Error log cleared');
+        }
+
+        async function checkServiceWorkerStatus() {
+            log('🔄 Checking service worker status...');
+            
+            if (!('serviceWorker' in navigator)) {
+                document.getElementById('sw-registration-status').textContent = '❌ Not Supported';
+                document.getElementById('sw-active-status').textContent = '❌ Not Supported';
+                document.getElementById('cache-status').textContent = '❌ Not Supported';
+                return;
+            }
+
+            try {
+                const registration = await navigator.serviceWorker.getRegistration();
+                
+                if (registration) {
+                    document.getElementById('sw-registration-status').textContent = '✅ Registered';
+                    
+                    if (registration.active) {
+                        document.getElementById('sw-active-status').textContent = '✅ Active';
+                        log(`📱 Service worker active: ${registration.active.scriptURL}`);
+                    } else if (registration.installing) {
+                        document.getElementById('sw-active-status').textContent = '⏳ Installing';
+                    } else if (registration.waiting) {
+                        document.getElementById('sw-active-status').textContent = '⏳ Waiting';
+                    } else {
+                        document.getElementById('sw-active-status').textContent = '❌ Not Active';
+                    }
+                } else {
+                    document.getElementById('sw-registration-status').textContent = '❌ Not Registered';
+                    document.getElementById('sw-active-status').textContent = '❌ No Registration';
+                }
+
+                // Check cache status
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    document.getElementById('cache-status').textContent = `✅ ${cacheNames.length} caches`;
+                    log(`💾 Found ${cacheNames.length} caches: ${cacheNames.join(', ')}`);
+                } else {
+                    document.getElementById('cache-status').textContent = '❌ Not Supported';
+                }
+
+            } catch (error) {
+                log(`❌ Error checking service worker: ${error.message}`);
+                document.getElementById('sw-registration-status').textContent = '❌ Error';
+                document.getElementById('sw-active-status').textContent = '❌ Error';
+            }
+        }
+
+        async function registerServiceWorker() {
+            log('📱 Registering service worker...');
+            
+            if (!('serviceWorker' in navigator)) {
+                log('❌ Service workers not supported');
+                return;
+            }
+
+            try {
+                const registration = await navigator.serviceWorker.register('/sw.js');
+                log('✅ Service worker registered successfully');
+                
+                registration.addEventListener('updatefound', () => {
+                    log('🔄 Service worker update found');
+                });
+
+                await checkServiceWorkerStatus();
+            } catch (error) {
+                log(`❌ Service worker registration failed: ${error.message}`);
+            }
+        }
+
+        async function unregisterServiceWorker() {
+            log('❌ Unregistering service worker...');
+            
+            try {
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    await registration.unregister();
+                    log('✅ Service worker unregistered successfully');
+                } else {
+                    log('ℹ️ No service worker registration found');
+                }
+                
+                await checkServiceWorkerStatus();
+            } catch (error) {
+                log(`❌ Error unregistering service worker: ${error.message}`);
+            }
+        }
+
+        async function listCaches() {
+            log('📋 Listing all caches...');
+            
+            if (!('caches' in window)) {
+                log('❌ Cache API not supported');
+                return;
+            }
+
+            try {
+                const cacheNames = await caches.keys();
+                const cacheInfo = document.getElementById('cache-info');
+                
+                if (cacheNames.length === 0) {
+                    cacheInfo.innerHTML = '<p class="status info">No caches found</p>';
+                    log('ℹ️ No caches found');
+                    return;
+                }
+
+                let cacheHtml = '<h3>Cache Details:</h3>';
+                
+                for (const cacheName of cacheNames) {
+                    const cache = await caches.open(cacheName);
+                    const requests = await cache.keys();
+                    
+                    cacheHtml += `
+                        <div class="info-card">
+                            <h4>${cacheName}</h4>
+                            <p><strong>Entries:</strong> ${requests.length}</p>
+                            <details>
+                                <summary>Show cached URLs</summary>
+                                <ul style="margin: 10px 0; padding-left: 20px;">
+                                    ${requests.map(req => `<li>${req.url}</li>`).join('')}
+                                </ul>
+                            </details>
+                        </div>
+                    `;
+                    
+                    log(`💾 Cache "${cacheName}": ${requests.length} entries`);
+                }
+                
+                cacheInfo.innerHTML = cacheHtml;
+                
+            } catch (error) {
+                log(`❌ Error listing caches: ${error.message}`);
+            }
+        }
+
+        async function clearAllCaches() {
+            log('🗑️ Clearing all caches...');
+            
+            if (!('caches' in window)) {
+                log('❌ Cache API not supported');
+                return;
+            }
+
+            try {
+                const cacheNames = await caches.keys();
+                
+                await Promise.all(
+                    cacheNames.map(cacheName => {
+                        log(`🗑️ Deleting cache: ${cacheName}`);
+                        return caches.delete(cacheName);
+                    })
+                );
+                
+                log(`✅ Cleared ${cacheNames.length} caches`);
+                await checkServiceWorkerStatus();
+                await listCaches();
+                
+            } catch (error) {
+                log(`❌ Error clearing caches: ${error.message}`);
+            }
+        }
+
+        async function testCaching() {
+            log('🧪 Testing caching functionality...');
+            
+            try {
+                // Test fetching a resource that should be cached
+                const testUrl = '/css/styles.css';
+                
+                log(`📥 Fetching ${testUrl}...`);
+                const response = await fetch(testUrl);
+                
+                if (response.ok) {
+                    log(`✅ Successfully fetched ${testUrl} (${response.status})`);
+                    
+                    // Check if it's now in cache
+                    const cacheNames = await caches.keys();
+                    let foundInCache = false;
+                    
+                    for (const cacheName of cacheNames) {
+                        const cache = await caches.open(cacheName);
+                        const cachedResponse = await cache.match(testUrl);
+                        if (cachedResponse) {
+                            foundInCache = true;
+                            log(`✅ Found ${testUrl} in cache: ${cacheName}`);
+                            break;
+                        }
+                    }
+                    
+                    if (!foundInCache) {
+                        log(`⚠️ ${testUrl} not found in any cache`);
+                    }
+                } else {
+                    log(`❌ Failed to fetch ${testUrl}: ${response.status}`);
+                }
+                
+            } catch (error) {
+                log(`❌ Error testing caching: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -44,19 +44,39 @@ public class PushSubscriptionService {
     public PushSubscription createOrUpdateSubscription(PushSubscriptionRequest request, String userAgent) {
         validateSubscriptionRequest(request);
         
-        Optional<PushSubscription> existingSubscription = 
-            pushSubscriptionRepository.findByEndpoint(request.getEndpoint());
-        
-        PushSubscription subscription;
-        if (existingSubscription.isPresent()) {
-            subscription = updateExistingSubscription(existingSubscription.get(), request, userAgent);
-            log.info("Updated existing push subscription for endpoint: {}", request.getEndpoint());
-        } else {
-            subscription = createNewSubscription(request, userAgent);
-            log.info("Created new push subscription for endpoint: {}", request.getEndpoint());
+        try {
+            Optional<PushSubscription> existingSubscription = 
+                pushSubscriptionRepository.findByEndpoint(request.getEndpoint());
+            
+            PushSubscription subscription;
+            if (existingSubscription.isPresent()) {
+                subscription = updateExistingSubscription(existingSubscription.get(), request, userAgent);
+                log.info("Updated existing push subscription for endpoint: {}", request.getEndpoint());
+            } else {
+                subscription = createNewSubscription(request, userAgent);
+                log.info("Created new push subscription for endpoint: {}", request.getEndpoint());
+            }
+            
+            return pushSubscriptionRepository.save(subscription);
+            
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // Handle race condition where subscription was created between check and save
+            log.warn("Constraint violation when creating subscription, attempting to update existing: {}", e.getMessage());
+            
+            // Try to find and update the existing subscription
+            Optional<PushSubscription> existingSubscription = 
+                pushSubscriptionRepository.findByEndpoint(request.getEndpoint());
+            
+            if (existingSubscription.isPresent()) {
+                PushSubscription subscription = updateExistingSubscription(existingSubscription.get(), request, userAgent);
+                log.info("Updated existing push subscription after constraint violation for endpoint: {}", request.getEndpoint());
+                return pushSubscriptionRepository.save(subscription);
+            } else {
+                // If we still can't find it, re-throw the original exception
+                log.error("Failed to handle constraint violation for endpoint: {}", request.getEndpoint());
+                throw e;
+            }
         }
-        
-        return pushSubscriptionRepository.save(subscription);
     }
     
     /**

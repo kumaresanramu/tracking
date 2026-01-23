@@ -79,6 +79,7 @@ public class NotificationService {
             case BUDGET_THRESHOLD_WARNING, BUDGET_EXCEEDED_ALERT -> settingsResponse.getEnableBudgetAlerts();
             case WEEKLY_SUMMARY -> settingsResponse.getEnableWeeklySummary();
             case STREAK_REWARD -> settingsResponse.getEnableStreakRewards();
+            case PAYMENT_REMINDER -> true; // Always enabled for payment reminders
             default -> true; // Enable other types by default
         };
     }

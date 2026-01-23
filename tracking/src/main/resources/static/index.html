@@ -22,14 +22,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Expense Tracker">
     <meta name="apple-touch-fullscreen" content="yes">
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
-    <link rel="apple-touch-startup-image" href="/icons/icon-512x512.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.svg">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-192x192.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.svg">
+    <link rel="apple-touch-startup-image" href="/icons/icon-192x192.svg">
     
     <!-- Microsoft PWA Meta Tags -->
     <meta name="msapplication-TileColor" content="#2196F3">
-    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png">
+    <meta name="msapplication-TileImage" content="/icons/icon-192x192.svg">
     <meta name="msapplication-config" content="/browserconfig.xml">
     <meta name="msapplication-starturl" content="/">
     <meta name="msapplication-navbutton-color" content="#2196F3">
@@ -374,9 +374,6 @@
                     <div class="page-header">
                         <h2>Notifications & Reminders</h2>
                         <div class="header-actions">
-                            <button class="btn btn-secondary" onclick="app.showNotificationSettings()">
-                                ⚙️ Settings
-                            </button>
                             <button class="btn btn-primary" onclick="app.showAddReminderForm()">
                                 <span>+</span> Add Reminder
                             </button>
@@ -398,6 +395,59 @@
                         </div>
                     </div>
                     
+                    <!-- Payment Reminders Management -->
+                    <div class="payment-reminders-section">
+                        <div class="section-header">
+                            <h3>💰 Payment Reminders</h3>
+                            <div class="section-actions">
+                                <button class="btn btn-small btn-secondary" onclick="app.refreshPaymentReminders()">
+                                    🔄 Refresh
+                                </button>
+                                <button class="btn btn-small btn-primary" onclick="app.showAddPaymentReminderForm()">
+                                    <span>+</span> Add Payment Reminder
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Filter and Sort Options -->
+                        <div class="reminders-filters">
+                            <div class="filter-group">
+                                <label for="reminder-status-filter">Status:</label>
+                                <select id="reminder-status-filter" class="filter-select" onchange="app.filterPaymentReminders()">
+                                    <option value="all">All Reminders</option>
+                                    <option value="active">Active</option>
+                                    <option value="due">Due Soon</option>
+                                    <option value="overdue">Overdue</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="reminder-frequency-filter">Frequency:</label>
+                                <select id="reminder-frequency-filter" class="filter-select" onchange="app.filterPaymentReminders()">
+                                    <option value="all">All Frequencies</option>
+                                    <option value="MONTHLY">Monthly</option>
+                                    <option value="QUARTERLY">Quarterly</option>
+                                    <option value="YEARLY">Yearly</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Payment Reminders List -->
+                        <div id="payment-reminders-list" class="payment-reminders-list">
+                            <!-- Payment reminders will be populated here -->
+                            <div class="loading-state" id="reminders-loading">
+                                <div class="loading-spinner"></div>
+                                <p>Loading payment reminders...</p>
+                            </div>
+                            <div class="empty-state" id="reminders-empty" style="display: none;">
+                                <div class="empty-icon">💰</div>
+                                <h4>No Payment Reminders</h4>
+                                <p>Create your first payment reminder to get started with automated bill tracking.</p>
+                                <button class="btn btn-primary" onclick="app.showAddPaymentReminderForm()">
+                                    <span>+</span> Add Your First Reminder
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
                     
                     <!-- Quick Actions -->

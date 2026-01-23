@@ -6,7 +6,6 @@ import com.expense.tracking.dto.CategoryResponse;
 import com.expense.tracking.entity.PaymentReminder;
 import com.expense.tracking.entity.Category;
 import com.expense.tracking.entity.ReminderPreferences;
-import com.expense.tracking.entity.Expense;
 import com.expense.tracking.repository.PaymentReminderRepository;
 import com.expense.tracking.repository.ReminderPreferencesRepository;
 import com.expense.tracking.repository.CategoryRepository;
@@ -33,6 +32,7 @@ public class PaymentReminderService {
     private final CategoryRepository categoryRepository;
     private final ExpenseService expenseService;
     private final ReminderPreferencesService reminderPreferencesService;
+    private final NotificationService notificationService;
     
     @Transactional
     public PaymentReminderResponse createReminder(PaymentReminderRequest request) {
@@ -249,15 +249,36 @@ public class PaymentReminderService {
     }
     
     private void sendNotification(PaymentReminder reminder) {
-        // This is a placeholder for actual notification implementation
-        // In a real application, this would integrate with email/push notification services
-        log.info("Notification due for reminder: {} - Amount: {} - Due: {}", 
+        log.info("Sending notification for reminder: {} - Amount: {} - Due: {}", 
                 reminder.getName(), reminder.getAmount(), reminder.getNextDueDate());
         
-        // TODO: Implement actual notification sending
-        // - Email notification if enableEmailNotification is true
-        // - Push notification if enablePushNotification is true
-        // - Use customMessage if provided
+        try {
+            // Create notification request
+            var notificationRequest = com.expense.tracking.dto.NotificationRequest.builder()
+                    .title("Payment Reminder: " + reminder.getName())
+                    .message(reminder.getCustomMessage() != null ? 
+                            reminder.getCustomMessage() : 
+                            String.format("Payment of ₹%.2f is due on %s", 
+                                    reminder.getAmount().doubleValue(), 
+                                    reminder.getNextDueDate()))
+                    .type(com.expense.tracking.entity.NotificationType.PAYMENT_REMINDER)
+                    .channel(com.expense.tracking.entity.NotificationChannel.IN_APP)
+                    .icon("💰")
+                    .actionUrl("/reminders/" + reminder.getId())
+                    .actionLabel("View Details")
+                    .priority(2)
+                    .build();
+            
+            // Create the notification using NotificationService
+            var notification = notificationService.createNotification(notificationRequest);
+            
+            if (notification != null) {
+                log.info("Successfully created notification for payment reminder: {}", reminder.getName());
+            }
+            
+        } catch (Exception e) {
+            log.error("Failed to send notification for payment reminder: {}", reminder.getName(), e);
+        }
     }
     
     private PaymentReminderResponse mapToResponse(PaymentReminder reminder) {

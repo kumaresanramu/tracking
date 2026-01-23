@@ -1,7 +1,7 @@
-const CACHE_NAME = 'expense-tracker-v2';
-const STATIC_CACHE = 'expense-tracker-static-v2';
-const API_CACHE = 'expense-tracker-api-v2';
-const RUNTIME_CACHE = 'expense-tracker-runtime-v2';
+const CACHE_NAME = 'expense-tracker-v3';
+const STATIC_CACHE = 'expense-tracker-static-v3';
+const API_CACHE = 'expense-tracker-api-v3';
+const RUNTIME_CACHE = 'expense-tracker-runtime-v3';
 
 // Cache size limits for LRU eviction
 const CACHE_LIMITS = {
@@ -274,24 +274,40 @@ self.addEventListener('install', event => {
 
 // Advanced caching strategies
 async function cacheFirstStrategy(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cachedResponse = await cache.match(request);
-  
-  if (cachedResponse) {
-    // Record access for LRU
-    await lruManager.recordAccess(cacheName, request.url);
-    return cachedResponse;
-  }
-  
   try {
-    const networkResponse = await fetch(request);
-    if (networkResponse && networkResponse.status === 200) {
-      const responseToCache = networkResponse.clone();
-      await cache.put(request, responseToCache);
-      await lruManager.recordAccess(cacheName, request.url);
-      await lruManager.evictLRU(cacheName);
+    // Skip non-HTTP(S) requests
+    const url = new URL(request.url);
+    if (!url.protocol.startsWith('http')) {
+      return fetch(request);
     }
-    return networkResponse;
+    
+    const cache = await caches.open(cacheName);
+    const cachedResponse = await cache.match(request);
+    
+    if (cachedResponse) {
+      // Record access for LRU
+      await lruManager.recordAccess(cacheName, request.url);
+      return cachedResponse;
+    }
+    
+    try {
+      const networkResponse = await fetch(request);
+      if (networkResponse && networkResponse.status === 200) {
+        const responseToCache = networkResponse.clone();
+        try {
+          await cache.put(request, responseToCache);
+          await lruManager.recordAccess(cacheName, request.url);
+          await lruManager.evictLRU(cacheName);
+        } catch (cacheError) {
+          // Log cache errors but don't fail the request
+          console.warn('Failed to cache response:', cacheError.message);
+        }
+      }
+      return networkResponse;
+    } catch (error) {
+      console.error('Cache-first strategy failed:', error);
+      throw error;
+    }
   } catch (error) {
     console.error('Cache-first strategy failed:', error);
     throw error;
@@ -300,13 +316,24 @@ async function cacheFirstStrategy(request, cacheName) {
 
 async function networkFirstStrategy(request, cacheName) {
   try {
+    // Skip non-HTTP(S) requests
+    const url = new URL(request.url);
+    if (!url.protocol.startsWith('http')) {
+      return fetch(request);
+    }
+    
     const networkResponse = await fetch(request);
     if (networkResponse && networkResponse.status === 200) {
       const cache = await caches.open(cacheName);
       const responseToCache = networkResponse.clone();
-      await cache.put(request, responseToCache);
-      await lruManager.recordAccess(cacheName, request.url);
-      await lruManager.evictLRU(cacheName);
+      try {
+        await cache.put(request, responseToCache);
+        await lruManager.recordAccess(cacheName, request.url);
+        await lruManager.evictLRU(cacheName);
+      } catch (cacheError) {
+        // Log cache errors but don't fail the request
+        console.warn('Failed to cache response:', cacheError.message);
+      }
     }
     return networkResponse;
   } catch (error) {
@@ -331,6 +358,16 @@ self.addEventListener('fetch', event => {
   }
 
   const url = new URL(event.request.url);
+  
+  // Skip browser extension requests (chrome-extension://, moz-extension://, etc.)
+  if (url.protocol.includes('extension')) {
+    return;
+  }
+  
+  // Skip non-HTTP(S) requests
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
   
   event.respondWith(
     (async () => {
@@ -372,7 +409,15 @@ self.addEventListener('fetch', event => {
         return await networkFirstStrategy(event.request, RUNTIME_CACHE);
         
       } catch (error) {
-        console.error('Fetch strategy failed:', error);
+        console.warn('Fetch strategy failed for:', event.request.url, error.message);
+        
+        // For extension requests or other unsupported schemes, just pass through
+        if (error.message.includes('chrome-extension') || 
+            error.message.includes('Request scheme') ||
+            !event.request.url.startsWith('http')) {
+          return fetch(event.request).catch(() => new Response('', { status: 503 }));
+        }
+        
         return new Response('Network error', { status: 503 });
       }
     })()

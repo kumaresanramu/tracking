@@ -10,5 +10,6 @@ public enum NotificationType {
     STREAK_REWARD,
     BADGE_EARNED,
     OVERDUE_EXPENSE,
+    PAYMENT_REMINDER,
     CUSTOM_REMINDER
 }

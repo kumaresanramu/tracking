@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Notification Settings</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+    <div class="settings-container">
+        <h2>🔔 Notification Settings Test</h2>
+        
+        <!-- Channel Preferences -->
+        <div class="setting-group">
+            <h4>Notification Channels</h4>
+            <div class="channel-settings">
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="enable-push-notifications" class="setting-checkbox">
+                        <span class="setting-text">
+                            <strong>📱 Push Notifications</strong>
+                            <small>Receive notifications in your browser</small>
+                        </span>
+                    </label>
+                    <div id="push-permission-status" class="permission-status default">⏳ Click to enable push notifications</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="enable-email-notifications" class="setting-checkbox">
+                        <span class="setting-text">
+                            <strong>📧 Email Notifications</strong>
+                            <small>Receive notifications via email</small>
+                        </span>
+                    </label>
+                    <div class="email-settings" id="email-settings" style="display: none;">
+                        <input type="email" id="notification-email" placeholder="Enter your email address" class="setting-input">
+                        <button type="button" id="test-email-btn" class="btn btn-small btn-secondary">Send Test Email</button>
+                    </div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <input type="checkbox" id="enable-in-app-notifications" class="setting-checkbox" checked>
+                        <span class="setting-text">
+                            <strong>🔔 In-App Notifications</strong>
+                            <small>Show notifications within the app</small>
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="settings-actions">
+            <button type="button" id="save-notification-settings" class="btn btn-primary">💾 Save Settings</button>
+            <button type="button" id="reset-notification-settings" class="btn btn-secondary">🔄 Reset to Defaults</button>
+            <button type="button" id="test-notifications" class="btn btn-secondary">🧪 Test Notifications</button>
+            <button type="button" id="refresh-status" class="btn btn-secondary">🔄 Refresh Status</button>
+        </div>
+        
+        <!-- Status Display -->
+        <div class="setting-group">
+            <h4>Current Status</h4>
+            <div id="status-display" class="status-display">
+                <p><strong>Browser Permission:</strong> <span id="browser-permission">Checking...</span></p>
+                <p><strong>Service Worker:</strong> <span id="sw-status">Checking...</span></p>
+                <p><strong>Push Subscription:</strong> <span id="push-subscription-status">Checking...</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="/js/notification-settings.js"></script>
+    <script>
+        // Initialize the notification settings manager
+        document.addEventListener('DOMContentLoaded', () => {
+            window.notificationSettingsManager = new NotificationSettingsManager();
+            
+            // Add refresh button handler
+            document.getElementById('refresh-status')?.addEventListener('click', () => {
+                updateStatusDisplay();
+                window.notificationSettingsManager.refreshPushPermissionStatus();
+            });
+            
+            // Update status display
+            function updateStatusDisplay() {
+                // Browser permission
+                const browserPermission = 'Notification' in window ? Notification.permission : 'not-supported';
+                document.getElementById('browser-permission').textContent = browserPermission;
+                
+                // Service Worker
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then(() => {
+                        document.getElementById('sw-status').textContent = 'Ready';
+                    }).catch(() => {
+                        document.getElementById('sw-status').textContent = 'Not available';
+                    });
+                } else {
+                    document.getElementById('sw-status').textContent = 'Not supported';
+                }
+                
+                // Push subscription
+                if ('serviceWorker' in navigator && 'PushManager' in window) {
+                    navigator.serviceWorker.ready.then(registration => {
+                        return registration.pushManager.getSubscription();
+                    }).then(subscription => {
+                        document.getElementById('push-subscription-status').textContent = 
+                            subscription ? 'Active' : 'Not subscribed';
+                    }).catch(() => {
+                        document.getElementById('push-subscription-status').textContent = 'Error checking';
+                    });
+                } else {
+                    document.getElementById('push-subscription-status').textContent = 'Not supported';
+                }
+            }
+            
+            // Initial status update
+            updateStatusDisplay();
+        });
+    </script>
+</body>
+</html>
