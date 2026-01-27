@@ -7,7 +7,7 @@ class ExpenseTrackerApp {
         this.currentYear = new Date().getFullYear();
         this.expenses = [];
         this.categories = [];
-        
+
         // Enhanced Dashboard properties
         this.currentDateRange = 'this-month';
         this.currentFilters = {
@@ -20,7 +20,7 @@ class ExpenseTrackerApp {
         this.monthlyBudget = 0;
         this.savingsGoal = 0;
         this.enhancedDashboardInitialized = false;
-        
+
         console.log('APP VERSION:', this.version);
         this.init();
     }
@@ -35,31 +35,31 @@ class ExpenseTrackerApp {
             this.notificationService = new NotificationService();
             this.pwaInstallManager = new PWAInstallManager();
             this.appUpdateManager = new AppUpdateManager();
-            
+
             // Connect error handler to UI
             this.errorHandler.setUI(this.ui);
-            
+
             // Set up event listeners
             this.setupEventListeners();
-            
+
             // Handle PWA features (shortcuts, share targets)
             this.handlePWAFeatures();
-            
+
             // Initialize IndexedDB for offline storage
             await this.initIndexedDB();
-            
+
             // Load initial data
             await this.loadInitialData();
-            
+
             // Set up connectivity monitoring
             this.setupConnectivityMonitoring();
-            
+
             // Update UI
             this.updateUI();
-            
+
             // Initialize theme
             await this.initializeTheme();
-            
+
             console.log('Expense Tracker App initialized successfully');
         } catch (error) {
             console.error('Failed to initialize app:', error);
@@ -70,7 +70,7 @@ class ExpenseTrackerApp {
         // Mobile navigation toggle
         const navToggle = document.getElementById('nav-menu-toggle');
         const navMenu = document.getElementById('nav-menu');
-        
+
         if (navToggle && navMenu) {
             navToggle.addEventListener('click', () => {
                 navMenu.classList.toggle('active');
@@ -78,7 +78,7 @@ class ExpenseTrackerApp {
                 navToggle.setAttribute('aria-expanded', isOpen);
                 navToggle.querySelector('span').textContent = isOpen ? '✕' : '☰';
             });
-            
+
             // Close mobile menu when clicking outside
             document.addEventListener('click', (e) => {
                 if (!navToggle.contains(e.target) && !navMenu.contains(e.target)) {
@@ -87,7 +87,7 @@ class ExpenseTrackerApp {
                     navToggle.querySelector('span').textContent = '☰';
                 }
             });
-            
+
             // Close mobile menu on window resize to desktop
             window.addEventListener('resize', () => {
                 if (window.innerWidth >= 768) {
@@ -103,7 +103,7 @@ class ExpenseTrackerApp {
             item.addEventListener('click', (e) => {
                 const page = e.target.dataset.page;
                 this.navigateToPage(page);
-                
+
                 // Close mobile menu after navigation
                 if (navMenu && navMenu.classList.contains('active')) {
                     navMenu.classList.remove('active');
@@ -127,11 +127,11 @@ class ExpenseTrackerApp {
         // Month navigation
         const prevMonthBtn = document.getElementById('prev-month');
         const nextMonthBtn = document.getElementById('next-month');
-        
+
         if (prevMonthBtn) {
             prevMonthBtn.addEventListener('click', () => this.navigateMonth(-1));
         }
-        
+
         if (nextMonthBtn) {
             nextMonthBtn.addEventListener('click', () => this.navigateMonth(1));
         }
@@ -139,11 +139,11 @@ class ExpenseTrackerApp {
         // Quick actions
         const quickAddBtn = document.getElementById('quick-add-expense');
         const viewAnalyticsBtn = document.getElementById('view-analytics');
-        
+
         if (quickAddBtn) {
             quickAddBtn.addEventListener('click', () => this.navigateToPage('expenses'));
         }
-        
+
         if (viewAnalyticsBtn) {
             viewAnalyticsBtn.addEventListener('click', () => this.navigateToPage('analytics'));
         }
@@ -158,12 +158,12 @@ class ExpenseTrackerApp {
     handlePWAFeatures() {
         // Handle URL parameters for shortcuts and share targets
         const urlParams = new URLSearchParams(window.location.search);
-        
+
         // Handle shortcuts
         if (urlParams.get('shortcut') === 'true') {
             const path = window.location.pathname;
             console.log('PWA: Launched from shortcut:', path);
-            
+
             // Handle specific shortcuts
             if (path.includes('/expenses/add')) {
                 this.navigateToPage('expenses');
@@ -191,12 +191,12 @@ class ExpenseTrackerApp {
                 }
             }
         }
-        
+
         // Handle share target
         if (urlParams.get('title') || urlParams.get('text')) {
             this.handleShareTarget(urlParams);
         }
-        
+
         // Handle protocol handlers (web+expense://)
         if (urlParams.get('data')) {
             try {
@@ -206,55 +206,55 @@ class ExpenseTrackerApp {
                 console.error('PWA: Failed to parse protocol expense data:', error);
             }
         }
-        
+
         // Handle file handlers (CSV/JSON import)
         if (window.location.pathname === '/import') {
             this.handleFileImport();
         }
-        
+
         // Set up Web Share API if available
         if (navigator.share) {
             this.setupWebShare();
         }
-        
+
         // Handle app shortcuts from context menu
         this.setupAppShortcuts();
     }
 
     handleShareTarget(urlParams) {
         console.log('PWA: Handling share target');
-        
+
         const title = urlParams.get('title') || '';
         const text = urlParams.get('text') || '';
         const url = urlParams.get('url') || '';
-        
+
         // Navigate to expenses page and pre-fill form
         this.navigateToPage('expenses');
-        
+
         setTimeout(() => {
             // Try to extract expense information from shared content
             let description = title || text;
             let amount = '';
-            
+
             // Try to extract amount from text
             const amountMatch = text.match(/\$?(\d+(?:\.\d{2})?)/);
             if (amountMatch) {
                 amount = amountMatch[1];
                 description = text.replace(amountMatch[0], '').trim();
             }
-            
+
             // Pre-fill form
             const descriptionInput = document.getElementById('expense-description');
             const amountInput = document.getElementById('expense-amount');
-            
+
             if (descriptionInput && description) {
                 descriptionInput.value = description;
             }
-            
+
             if (amountInput && amount) {
                 amountInput.value = amount;
             }
-            
+
             // Show a notification about the shared content
             this.ui.showToast('Shared content loaded into expense form', 'success');
         }, 200);
@@ -262,21 +262,21 @@ class ExpenseTrackerApp {
 
     handleProtocolExpense(expenseData) {
         console.log('PWA: Handling protocol expense:', expenseData);
-        
+
         this.navigateToPage('expenses');
-        
+
         setTimeout(() => {
             // Pre-fill form with protocol data
             if (expenseData.description) {
                 const descInput = document.getElementById('expense-description');
                 if (descInput) descInput.value = expenseData.description;
             }
-            
+
             if (expenseData.amount) {
                 const amountInput = document.getElementById('expense-amount');
                 if (amountInput) amountInput.value = expenseData.amount;
             }
-            
+
             if (expenseData.category) {
                 const categorySelect = document.getElementById('expense-category');
                 if (categorySelect) {
@@ -286,7 +286,7 @@ class ExpenseTrackerApp {
                     if (option) categorySelect.value = option.value;
                 }
             }
-            
+
             this.ui.showToast('Expense data loaded from external app', 'success');
         }, 200);
     }
@@ -309,7 +309,7 @@ class ExpenseTrackerApp {
                     text: 'Check out my expense tracking progress',
                     url: window.location.href
                 };
-                
+
                 try {
                     await navigator.share(shareData);
                     console.log('PWA: Content shared successfully');
@@ -332,13 +332,13 @@ class ExpenseTrackerApp {
                     if (firstInput) firstInput.focus();
                 }, 100);
             }
-            
+
             // Ctrl/Cmd + A: Analytics
             if ((e.ctrlKey || e.metaKey) && e.key === 'a' && !e.shiftKey) {
                 e.preventDefault();
                 this.navigateToPage('analytics');
             }
-            
+
             // Ctrl/Cmd + D: Dashboard
             if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
                 e.preventDefault();
@@ -367,7 +367,7 @@ class ExpenseTrackerApp {
                 }
             });
         }
-        
+
         if (descriptionInput) {
             descriptionInput.addEventListener('blur', (e) => {
                 if (!e.target.value.trim()) {
@@ -377,7 +377,7 @@ class ExpenseTrackerApp {
                 }
             });
         }
-        
+
         if (categorySelect) {
             categorySelect.addEventListener('change', (e) => {
                 if (!e.target.value) {
@@ -392,16 +392,16 @@ class ExpenseTrackerApp {
     async initIndexedDB() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open('ExpenseTrackerDB', 3);
-            
+
             request.onerror = () => reject(request.error);
             request.onsuccess = () => {
                 this.db = request.result;
                 resolve();
             };
-            
+
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
-                
+
                 // Create expenses object store
                 if (!db.objectStoreNames.contains('expenses')) {
                     const expenseStore = db.createObjectStore('expenses', { keyPath: 'id', autoIncrement: true });
@@ -409,14 +409,14 @@ class ExpenseTrackerApp {
                     expenseStore.createIndex('categoryId', 'categoryId', { unique: false });
                     expenseStore.createIndex('month', ['year', 'month'], { unique: false });
                 }
-                
+
                 // Create categories object store
                 if (!db.objectStoreNames.contains('categories')) {
                     const categoryStore = db.createObjectStore('categories', { keyPath: 'id' });
                     categoryStore.createIndex('name', 'name', { unique: false });
                     categoryStore.createIndex('parentId', 'parentId', { unique: false });
                 }
-                
+
                 // Create app settings store
                 if (!db.objectStoreNames.contains('settings')) {
                     db.createObjectStore('settings', { keyPath: 'key' });
@@ -429,7 +429,7 @@ class ExpenseTrackerApp {
         try {
             // Load categories first
             await this.loadCategories();
-            
+
             // Load monthly expenses
             await this.loadMonthlyExpenses();
         } catch (error) {
@@ -489,7 +489,7 @@ class ExpenseTrackerApp {
             console.log('Connection restored - syncing data');
             this.loadInitialData();
         });
-        
+
         window.addEventListener('offline', () => {
             console.log('Connection lost - operating in offline mode');
         });
@@ -501,20 +501,20 @@ class ExpenseTrackerApp {
             item.classList.remove('active');
         });
         document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
-        
+
         // Hide all pages
         document.querySelectorAll('.page').forEach(p => {
             p.classList.remove('active');
         });
-        
+
         // Show selected page
         const targetPage = document.getElementById(`${page}-page`);
         if (targetPage) {
             targetPage.classList.add('active');
         }
-        
+
         this.currentPage = page;
-        
+
         // Load page-specific data
         this.loadPageData(page);
     }
@@ -544,20 +544,20 @@ class ExpenseTrackerApp {
 
     async handleExpenseSubmit(e) {
         e.preventDefault();
-        
+
         if (!this.ui.validateForm(
             document.getElementById('expense-form'),
             ['amount', 'description', 'category']
         )) {
             return;
         }
-        
+
         const formData = new FormData(e.target);
-        
+
         // Handle multiple tag selection properly
         const tagsSelect = document.getElementById('expense-tags');
         const selectedTags = Array.from(tagsSelect.selectedOptions).map(option => option.value);
-        
+
         const expense = {
             amount: parseFloat(formData.get('amount')),
             description: formData.get('description'),
@@ -566,31 +566,31 @@ class ExpenseTrackerApp {
             paymentMethod: formData.get('paymentMethod') || '',
             tags: selectedTags.join(', ') // Join multiple tags with comma and space
         };
-        
+
         // Validate amount
         if (expense.amount <= 0) {
             this.ui.showToast('Amount must be greater than 0', 'error');
             return;
         }
-        
+
         if (!expense.description) {
             this.ui.showToast('Description is required', 'error');
             return;
         }
-        
+
         if (!expense.categoryId) {
             this.ui.showToast('Please select a category', 'error');
             return;
         }
-        
+
         // Add month/year for indexing
         const expenseDate = new Date(expense.date);
         expense.month = expenseDate.getMonth() + 1;
         expense.year = expenseDate.getFullYear();
-        
+
         try {
             const savedExpense = await this.expenseService.createExpense(expense);
-            
+
             if (savedExpense) {
                 // Update local expenses array
                 const index = this.expenses.findIndex(e => e.id === savedExpense.id);
@@ -599,24 +599,24 @@ class ExpenseTrackerApp {
                 } else {
                     this.expenses.push(savedExpense);
                 }
-                
+
                 // Also update in IndexedDB
                 await this.saveToIndexedDB('expenses', savedExpense);
-                
+
                 // Reset form
                 e.target.reset();
-                
+
                 // Update UI
                 this.displayMonthlyExpenses();
                 this.updateDashboardStats();
-                
+
                 this.ui.showToast('Expense added successfully!', 'success');
             }
-            
+
             // Update UI
             this.displayMonthlyExpenses();
             this.updateDashboardStats();
-            
+
         } catch (error) {
             console.error('Failed to save expense:', error);
             this.errorHandler.handleError(error, {
@@ -628,7 +628,7 @@ class ExpenseTrackerApp {
 
     navigateMonth(direction) {
         this.currentMonth += direction;
-        
+
         if (this.currentMonth < 0) {
             this.currentMonth = 11;
             this.currentYear--;
@@ -636,7 +636,7 @@ class ExpenseTrackerApp {
             this.currentMonth = 0;
             this.currentYear++;
         }
-        
+
         this.updateMonthDisplay();
         this.loadMonthlyExpenses();
     }
@@ -646,7 +646,7 @@ class ExpenseTrackerApp {
             'January', 'February', 'March', 'April', 'May', 'June',
             'July', 'August', 'September', 'October', 'November', 'December'
         ];
-        
+
         const monthYearElement = document.getElementById('current-month-year');
         if (monthYearElement) {
             monthYearElement.textContent = `${monthNames[this.currentMonth]} ${this.currentYear}`;
@@ -656,12 +656,12 @@ class ExpenseTrackerApp {
     populateCategoryDropdown() {
         const categorySelect = document.getElementById('expense-category');
         if (!categorySelect || this.categories.length === 0) return;
-        
+
         // Clear existing options except the first one (placeholder)
         while (categorySelect.children.length > 1) {
             categorySelect.removeChild(categorySelect.lastChild);
         }
-        
+
         // Build hierarchical category options
         const hierarchicalCategories = this.buildCategoryHierarchy(this.categories);
         this.addCategoryOptionsToSelect(categorySelect, hierarchicalCategories, 0);
@@ -670,12 +670,12 @@ class ExpenseTrackerApp {
     buildCategoryHierarchy(categories) {
         const categoryMap = new Map();
         const rootCategories = [];
-        
+
         // First pass: create map of all categories
         categories.forEach(category => {
             categoryMap.set(category.id, { ...category, children: [] });
         });
-        
+
         // Second pass: build hierarchy
         categories.forEach(category => {
             if (category.parentId) {
@@ -687,7 +687,7 @@ class ExpenseTrackerApp {
                 rootCategories.push(categoryMap.get(category.id));
             }
         });
-        
+
         return rootCategories;
     }
 
@@ -697,7 +697,7 @@ class ExpenseTrackerApp {
             option.value = category.id;
             option.textContent = '  '.repeat(level) + category.name;
             select.appendChild(option);
-            
+
             if (category.children && category.children.length > 0) {
                 this.addCategoryOptionsToSelect(select, category.children, level + 1);
             }
@@ -707,19 +707,19 @@ class ExpenseTrackerApp {
     displayMonthlyExpenses() {
         const expensesList = document.getElementById('monthly-expenses-list');
         if (!expensesList) return;
-        
+
         if (this.expenses.length === 0) {
             expensesList.innerHTML = '<div class="no-expenses">No expenses found for this month.</div>';
             return;
         }
-        
+
         // Sort expenses by date (newest first)
         const sortedExpenses = [...this.expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
-        
+
         expensesList.innerHTML = sortedExpenses.map(expense => {
             const category = expense.category || this.categories.find(c => c.id === expense.categoryId);
             const categoryName = category ? category.name : 'Unknown';
-            
+
             return `
                 <div class="expense-item" data-id="${expense.id}">
                     <div class="expense-info">
@@ -748,24 +748,24 @@ class ExpenseTrackerApp {
     async editExpense(expenseId) {
         const expense = this.expenses.find(e => e.id === expenseId);
         if (!expense) return;
-        
+
         // Populate form with expense data
         document.getElementById('expense-amount').value = expense.amount;
         document.getElementById('expense-description').value = expense.description;
         document.getElementById('expense-category').value = expense.categoryId;
         document.getElementById('expense-date').value = expense.date;
-        
+
         const paymentMethodField = document.getElementById('expense-payment-method');
         if (paymentMethodField) {
             paymentMethodField.value = expense.paymentMethod || '';
         }
-        
+
         // Handle multiple tags properly for editing
         const tagsField = document.getElementById('expense-tags');
         if (tagsField && expense.tags) {
             // Clear all selections first
             Array.from(tagsField.options).forEach(option => option.selected = false);
-            
+
             // Split tags by comma and trim whitespace, then select matching options
             const expenseTags = expense.tags.split(',').map(tag => tag.trim());
             Array.from(tagsField.options).forEach(option => {
@@ -774,13 +774,13 @@ class ExpenseTrackerApp {
                 }
             });
         }
-        
+
         // Switch to expenses page
         this.navigateToPage('expenses');
-        
+
         // Store the expense ID for updating
         document.getElementById('expense-form').dataset.editingId = expenseId;
-        
+
         // Change submit button text
         const submitBtn = document.querySelector('#expense-form button[type="submit"]');
         if (submitBtn) {
@@ -792,20 +792,20 @@ class ExpenseTrackerApp {
         if (!confirm('Are you sure you want to delete this expense?')) {
             return;
         }
-        
+
         try {
             await this.expenseService.deleteExpense(expenseId);
-            
+
             // Remove from local array
             this.expenses = this.expenses.filter(e => e.id !== expenseId);
-            
+
             // Remove from IndexedDB
             await this.deleteFromIndexedDB('expenses', expenseId);
-            
+
             // Update UI
             this.displayMonthlyExpenses();
             this.updateDashboardStats();
-            
+
             this.ui.showToast('Expense deleted successfully!', 'success');
         } catch (error) {
             console.error('Failed to delete expense:', error);
@@ -815,7 +815,7 @@ class ExpenseTrackerApp {
 
     formatTags(tags) {
         if (!tags) return '';
-        
+
         const tagIcons = {
             'work': '💼',
             'personal': '👤',
@@ -824,14 +824,14 @@ class ExpenseTrackerApp {
             'education': '📚',
             'entertainment': '🎬'
         };
-        
+
         const tagList = tags.split(',').map(tag => tag.trim());
         const tagBadges = tagList.map(tag => {
             const icon = tagIcons[tag] || '🏷️';
             const displayName = tag.charAt(0).toUpperCase() + tag.slice(1);
             return `<span class="expense-tag">${icon} ${displayName}</span>`;
         }).join('');
-        
+
         return `<div class="expense-tags">${tagBadges}</div>`;
     }
 
@@ -848,7 +848,7 @@ class ExpenseTrackerApp {
             this.populateFilterDropdowns();
             this.enhancedDashboardInitialized = true;
         }
-        
+
         // Update the dashboard data
         this.updateDashboardData();
     }
@@ -896,7 +896,7 @@ class ExpenseTrackerApp {
             applyDateRange.addEventListener('click', () => {
                 const startDate = document.getElementById('start-date').value;
                 const endDate = document.getElementById('end-date').value;
-                
+
                 if (startDate && endDate) {
                     this.currentFilters.startDate = startDate;
                     this.currentFilters.endDate = endDate;
@@ -910,11 +910,17 @@ class ExpenseTrackerApp {
         const setGoalBtn = document.getElementById('set-goal-btn');
 
         if (setBudgetBtn) {
-            setBudgetBtn.addEventListener('click', () => this.showSetBudgetModal());
+            // Remove existing listener to prevent duplicates
+            const newBtn = setBudgetBtn.cloneNode(true);
+            setBudgetBtn.parentNode.replaceChild(newBtn, setBudgetBtn);
+            newBtn.addEventListener('click', () => this.showSetBudgetModal());
         }
 
         if (setGoalBtn) {
-            setGoalBtn.addEventListener('click', () => this.showSetGoalModal());
+            // Remove existing listener to prevent duplicates
+            const newBtn = setGoalBtn.cloneNode(true);
+            setGoalBtn.parentNode.replaceChild(newBtn, setGoalBtn);
+            newBtn.addEventListener('click', () => this.showSetGoalModal());
         }
 
         // Export data button
@@ -929,7 +935,7 @@ class ExpenseTrackerApp {
 
     handleDateRangeChange() {
         const customDateRange = document.getElementById('custom-date-range');
-        
+
         if (this.currentDateRange === 'custom') {
             if (customDateRange) {
                 customDateRange.style.display = 'block';
@@ -953,7 +959,7 @@ class ExpenseTrackerApp {
     getFilteredExpenses(expensesToFilter = null) {
         const expenses = expensesToFilter || this.expenses;
         let filtered = [...expenses];
-        
+
         // Date range filtering
         const now = new Date();
         let startDate, endDate;
@@ -992,21 +998,21 @@ class ExpenseTrackerApp {
 
         // Category filtering
         if (this.currentFilters.category !== 'all') {
-            filtered = filtered.filter(expense => 
+            filtered = filtered.filter(expense =>
                 expense.categoryId === parseInt(this.currentFilters.category)
             );
         }
 
         // Payment method filtering
         if (this.currentFilters.paymentMethod !== 'all') {
-            filtered = filtered.filter(expense => 
+            filtered = filtered.filter(expense =>
                 expense.paymentMethod === this.currentFilters.paymentMethod
             );
         }
 
         // Tag filtering
         if (this.currentFilters.tags !== 'all') {
-            filtered = filtered.filter(expense => 
+            filtered = filtered.filter(expense =>
                 expense.tags && expense.tags.includes(this.currentFilters.tags)
             );
         }
@@ -1018,7 +1024,7 @@ class ExpenseTrackerApp {
         // Get all expenses for filtering (not just current month)
         const allExpenses = await this.getAllExpensesForFiltering();
         const filteredExpenses = this.getFilteredExpenses(allExpenses);
-        
+
         this.updateQuickInsights(filteredExpenses);
         this.updateBudgetTracking(filteredExpenses);
         this.updateSmartHighlights(filteredExpenses);
@@ -1029,23 +1035,23 @@ class ExpenseTrackerApp {
         try {
             const currentDate = new Date();
             const promises = [];
-            
+
             // Get last 12 months of data for comprehensive filtering
             for (let i = 0; i < 12; i++) {
                 const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
                 const year = date.getFullYear();
                 const month = date.getMonth() + 1;
-                
+
                 promises.push(
                     fetch(`/api/expenses/month/${year}/${month}`)
                         .then(response => response.ok ? response.json() : [])
                         .catch(() => [])
                 );
             }
-            
+
             const monthlyResults = await Promise.all(promises);
             const allExpenses = monthlyResults.flat();
-            
+
             return allExpenses.length > 0 ? allExpenses : this.expenses;
         } catch (error) {
             console.error('Failed to load expenses for filtering:', error);
@@ -1057,27 +1063,27 @@ class ExpenseTrackerApp {
         // Top 3 Categories
         const categoryTotals = {};
         expenses.forEach(expense => {
-            const categoryName = expense.category?.name || 
-                               this.categories.find(c => c.id === expense.categoryId)?.name || 
-                               'Unknown';
+            const categoryName = expense.category?.name ||
+                this.categories.find(c => c.id === expense.categoryId)?.name ||
+                'Unknown';
             categoryTotals[categoryName] = (categoryTotals[categoryName] || 0) + expense.amount;
         });
 
         const topCategories = Object.entries(categoryTotals)
-            .sort(([,a], [,b]) => b - a)
+            .sort(([, a], [, b]) => b - a)
             .slice(0, 3);
 
         const topCategoriesElement = document.getElementById('top-categories-list');
         if (topCategoriesElement) {
-            topCategoriesElement.innerHTML = topCategories.length > 0 
-                ? topCategories.map(([name, amount]) => 
+            topCategoriesElement.innerHTML = topCategories.length > 0
+                ? topCategories.map(([name, amount]) =>
                     `<div class="insight-item">${name}: $${amount.toFixed(2)}</div>`
-                  ).join('')
+                ).join('')
                 : '<div class="insight-item">No data available</div>';
         }
 
         // Biggest Expense
-        const biggestExpense = expenses.reduce((max, expense) => 
+        const biggestExpense = expenses.reduce((max, expense) =>
             expense.amount > (max?.amount || 0) ? expense : max, null);
 
         const biggestExpenseElement = document.getElementById('biggest-expense');
@@ -1134,7 +1140,7 @@ class ExpenseTrackerApp {
 
     updateBudgetTracking(expenses) {
         const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-        
+
         // Budget Progress
         const budgetProgressElement = document.getElementById('budget-progress-fill');
         const budgetSpentElement = document.getElementById('budget-spent');
@@ -1143,20 +1149,20 @@ class ExpenseTrackerApp {
 
         if (this.monthlyBudget > 0) {
             const percentage = Math.min((totalSpent / this.monthlyBudget) * 100, 100);
-            
+
             if (budgetProgressElement) {
                 budgetProgressElement.style.width = `${percentage}%`;
                 budgetProgressElement.className = `progress-fill ${percentage > 90 ? 'over-budget' : percentage > 75 ? 'warning' : ''}`;
             }
-            
+
             if (budgetSpentElement) {
                 budgetSpentElement.textContent = `$${totalSpent.toFixed(2)}`;
             }
-            
+
             if (budgetTotalElement) {
                 budgetTotalElement.textContent = `$${this.monthlyBudget.toFixed(2)}`;
             }
-            
+
             if (budgetPercentageElement) {
                 budgetPercentageElement.textContent = `${percentage.toFixed(1)}%`;
             }
@@ -1180,15 +1186,15 @@ class ExpenseTrackerApp {
         if (this.savingsGoal > 0) {
             const saved = Math.max(this.monthlyBudget - totalSpent, 0);
             const percentage = Math.min((saved / this.savingsGoal) * 100, 100);
-            
+
             if (savingsProgressElement) {
                 savingsProgressElement.style.width = `${percentage}%`;
             }
-            
+
             if (savingsAmountElement) {
                 savingsAmountElement.textContent = `$${saved.toFixed(2)}`;
             }
-            
+
             if (savingsGoalElement) {
                 savingsGoalElement.textContent = `$${this.savingsGoal.toFixed(2)}`;
             }
@@ -1204,12 +1210,12 @@ class ExpenseTrackerApp {
 
     updateSmartHighlights(expenses) {
         const highlights = [];
-        
+
         // Budget warnings
         if (this.monthlyBudget > 0) {
             const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
             const percentage = (totalSpent / this.monthlyBudget) * 100;
-            
+
             if (percentage > 100) {
                 highlights.push({
                     type: 'warning',
@@ -1227,7 +1233,7 @@ class ExpenseTrackerApp {
         if (expenses.length > 0) {
             const avgExpense = expenses.reduce((sum, e) => sum + e.amount, 0) / expenses.length;
             const largeExpenses = expenses.filter(e => e.amount > avgExpense * 2);
-            
+
             if (largeExpenses.length > 0) {
                 highlights.push({
                     type: 'info',
@@ -1242,40 +1248,40 @@ class ExpenseTrackerApp {
                 highlightsElement.innerHTML = '<div class="highlight info">No expenses found for the selected period.</div>';
                 return;
             }
-            
+
             // Enhanced highlights logic
             const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-            
+
             // Add more detailed spending analysis
             const avgExpense = totalSpent / expenses.length;
             const largeExpenses = expenses.filter(e => e.amount > avgExpense * 2);
-            
+
             if (largeExpenses.length > 0) {
                 highlights.push({
                     type: 'info',
                     message: `${largeExpenses.length} unusually large expense(s) detected (over $${(avgExpense * 2).toFixed(2)})`
                 });
             }
-            
+
             // Category concentration analysis
             const categoryTotals = {};
             expenses.forEach(expense => {
-                const categoryName = expense.category?.name || 
-                                   this.categories.find(c => c.id === expense.categoryId)?.name || 
-                                   'Unknown';
+                const categoryName = expense.category?.name ||
+                    this.categories.find(c => c.id === expense.categoryId)?.name ||
+                    'Unknown';
                 categoryTotals[categoryName] = (categoryTotals[categoryName] || 0) + expense.amount;
             });
-            
+
             const topCategory = Object.entries(categoryTotals)
-                .sort(([,a], [,b]) => b - a)[0];
-                
+                .sort(([, a], [, b]) => b - a)[0];
+
             if (topCategory && topCategory[1] > totalSpent * 0.5) {
                 highlights.push({
                     type: 'info',
                     message: `${topCategory[0]} accounts for ${((topCategory[1] / totalSpent) * 100).toFixed(1)}% of your spending`
                 });
             }
-            
+
             highlightsElement.innerHTML = highlights.length > 0
                 ? highlights.map(h => `<div class="highlight ${h.type}">${h.message}</div>`).join('')
                 : '<div class="highlight info">All looks good! Keep tracking your expenses.</div>';
@@ -1290,7 +1296,7 @@ class ExpenseTrackerApp {
             while (categoryFilter.children.length > 1) {
                 categoryFilter.removeChild(categoryFilter.lastChild);
             }
-            
+
             this.categories.forEach(category => {
                 const option = document.createElement('option');
                 option.value = category.id;
@@ -1300,24 +1306,31 @@ class ExpenseTrackerApp {
         }
     }
 
-    async showSetBudgetModal() {
-        const budget = prompt('Enter your monthly budget:', this.monthlyBudget || '');
-        if (budget && !isNaN(budget) && parseFloat(budget) > 0) {
-            this.monthlyBudget = parseFloat(budget);
-            await this.saveSetting('monthlyBudget', this.monthlyBudget);
-            this.updateDashboardData();
-            this.ui.showToast('Monthly budget updated!', 'success');
-        }
+    showSetBudgetModal() {
+        this.ui.showInputModal('Set Monthly Budget', this.monthlyBudget, async (value) => {
+            const budget = parseFloat(value);
+            if (!isNaN(budget) && budget > 0) {
+                this.monthlyBudget = budget;
+                await this.saveSetting('monthlyBudget', this.monthlyBudget);
+                // Force update UI
+                this.updateBudgetTracking(this.getFilteredExpenses());
+                this.updateSmartHighlights(this.getFilteredExpenses());
+                this.ui.showToast('Monthly budget updated!', 'success');
+            }
+        });
     }
 
-    async showSetGoalModal() {
-        const goal = prompt('Enter your savings goal:', this.savingsGoal || '');
-        if (goal && !isNaN(goal) && parseFloat(goal) > 0) {
-            this.savingsGoal = parseFloat(goal);
-            await this.saveSetting('savingsGoal', this.savingsGoal);
-            this.updateDashboardData();
-            this.ui.showToast('Savings goal updated!', 'success');
-        }
+    showSetGoalModal() {
+        this.ui.showInputModal('Set Savings Goal', this.savingsGoal, async (value) => {
+            const goal = parseFloat(value);
+            if (!isNaN(goal) && goal > 0) {
+                this.savingsGoal = goal;
+                await this.saveSetting('savingsGoal', this.savingsGoal);
+                // Force update UI
+                this.updateBudgetTracking(this.getFilteredExpenses());
+                this.ui.showToast('Savings goal updated!', 'success');
+            }
+        });
     }
 
     async showExportModal() {
@@ -1329,7 +1342,7 @@ class ExpenseTrackerApp {
 
     async exportData(format) {
         let expensesToExport;
-        
+
         // If we're on the analytics page, export the selected month's data
         if (this.currentPage === 'analytics' && this.analytics) {
             expensesToExport = await this.analytics.getSelectedMonthExpenses();
@@ -1337,12 +1350,12 @@ class ExpenseTrackerApp {
             // Otherwise, use filtered expenses from dashboard
             expensesToExport = this.getFilteredExpenses();
         }
-        
+
         if (expensesToExport.length === 0) {
             this.ui.showToast('No expenses found for the selected period to export', 'warning');
             return;
         }
-        
+
         if (format === 'csv') {
             this.exportCSV(expensesToExport);
         } else if (format === 'pdf') {
@@ -1382,7 +1395,7 @@ class ExpenseTrackerApp {
         // Simple PDF export using browser print
         const printWindow = window.open('', '_blank');
         const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-        
+
         printWindow.document.write(`
             <html>
                 <head>
@@ -1433,10 +1446,10 @@ class ExpenseTrackerApp {
                 </body>
             </html>
         `);
-        
+
         printWindow.document.close();
         printWindow.print();
-        
+
         this.ui.showToast('PDF export ready for printing!', 'success');
     }
 
@@ -1449,7 +1462,7 @@ class ExpenseTrackerApp {
     async initializeTheme() {
         const savedTheme = await this.getSetting('theme', 'light');
         this.applyTheme(savedTheme);
-        
+
         // Update theme selector if it exists
         const themeSelector = document.getElementById('theme-selector');
         if (themeSelector) {
@@ -1460,10 +1473,10 @@ class ExpenseTrackerApp {
     async changeTheme(theme) {
         // Apply the theme
         this.applyTheme(theme);
-        
+
         // Save the theme preference
         await this.saveSetting('theme', theme);
-        
+
         // Show confirmation
         this.ui.showToast(`Theme changed to ${theme}`, 'success', 2000);
     }
@@ -1471,10 +1484,10 @@ class ExpenseTrackerApp {
     applyTheme(theme) {
         // Set the data-theme attribute on the document element
         document.documentElement.setAttribute('data-theme', theme);
-        
+
         // Also set it on the body for compatibility
         document.body.setAttribute('data-theme', theme);
-        
+
         console.log('Theme applied:', theme);
     }
 
@@ -1483,7 +1496,7 @@ class ExpenseTrackerApp {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([storeName], 'readwrite');
             const store = transaction.objectStore(storeName);
-            
+
             if (Array.isArray(data)) {
                 // Save multiple items
                 data.forEach(item => store.put(item));
@@ -1491,7 +1504,7 @@ class ExpenseTrackerApp {
                 // Save single item
                 store.put(data);
             }
-            
+
             transaction.oncomplete = () => resolve();
             transaction.onerror = () => reject(transaction.error);
         });
@@ -1501,7 +1514,7 @@ class ExpenseTrackerApp {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([storeName], 'readonly');
             const store = transaction.objectStore(storeName);
-            
+
             if (key) {
                 const request = store.get(key);
                 request.onsuccess = () => resolve(request.result);
@@ -1519,7 +1532,7 @@ class ExpenseTrackerApp {
             const transaction = this.db.transaction([storeName], 'readwrite');
             const store = transaction.objectStore(storeName);
             const request = store.delete(key);
-            
+
             request.onsuccess = () => resolve();
             request.onerror = () => reject(request.error);
         });
@@ -1678,7 +1691,7 @@ class ExpenseTrackerApp {
 
         // Set up form preview
         this.setupReminderFormPreview();
-        
+
         // Set default date to tomorrow
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -1687,7 +1700,7 @@ class ExpenseTrackerApp {
 
     setupReminderFormPreview() {
         const formInputs = ['reminder-title', 'reminder-amount', 'reminder-due-date', 'reminder-frequency', 'reminder-advance-days'];
-        
+
         formInputs.forEach(inputId => {
             const input = document.getElementById(inputId);
             if (input) {
@@ -1695,7 +1708,7 @@ class ExpenseTrackerApp {
                 input.addEventListener('change', () => this.updateReminderPreview());
             }
         });
-        
+
         // Initial preview update
         setTimeout(() => this.updateReminderPreview(), 100);
     }
@@ -1706,22 +1719,22 @@ class ExpenseTrackerApp {
         const dueDate = document.getElementById('reminder-due-date')?.value;
         const frequency = document.getElementById('reminder-frequency')?.value;
         const advanceDays = document.getElementById('reminder-advance-days')?.value;
-        
+
         const previewElement = document.getElementById('reminder-preview');
         if (!previewElement) return;
 
         let preview = `<div class="preview-reminder">`;
         preview += `<div class="preview-title">💰 ${title}</div>`;
-        
+
         if (amount && parseFloat(amount) > 0) {
             preview += `<div class="preview-amount">Amount: $${parseFloat(amount).toFixed(2)}</div>`;
         }
-        
+
         if (dueDate) {
             const dueDateObj = new Date(dueDate);
             preview += `<div class="preview-date">Due: ${dueDateObj.toLocaleDateString()}</div>`;
         }
-        
+
         if (frequency) {
             const frequencyText = {
                 'ONCE': 'One-time',
@@ -1733,7 +1746,7 @@ class ExpenseTrackerApp {
             };
             preview += `<div class="preview-frequency">Frequency: ${frequencyText[frequency]}</div>`;
         }
-        
+
         if (advanceDays) {
             const advanceText = {
                 '0': 'on the due date',
@@ -1744,7 +1757,7 @@ class ExpenseTrackerApp {
             };
             preview += `<div class="preview-timing">Reminder: ${advanceText[advanceDays]}</div>`;
         }
-        
+
         preview += `</div>`;
         previewElement.innerHTML = preview;
     }
@@ -1764,25 +1777,25 @@ class ExpenseTrackerApp {
 
         // Enhanced validation
         const errors = [];
-        
+
         if (!formData.title) {
             errors.push('Reminder title is required');
         } else if (formData.title.length < 3) {
             errors.push('Reminder title must be at least 3 characters long');
         }
-        
+
         if (!formData.dueDate) {
             errors.push('Due date is required');
         } else {
             const dueDate = new Date(formData.dueDate);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             if (dueDate < today) {
                 errors.push('Due date cannot be in the past');
             }
         }
-        
+
         if (!formData.frequency) {
             errors.push('Frequency is required');
         }
@@ -1810,11 +1823,11 @@ class ExpenseTrackerApp {
 
             await this.notificationService.createNotification(notificationData);
             await this.loadNotifications();
-            
+
             // Show success message with details
             const successMessage = `Payment reminder "${formData.title}" created successfully! ` +
-                                  `You'll be reminded ${formData.advanceDays > 0 ? formData.advanceDays + ' days before' : 'on'} ${new Date(formData.dueDate).toLocaleDateString()}.`;
-            
+                `You'll be reminded ${formData.advanceDays > 0 ? formData.advanceDays + ' days before' : 'on'} ${new Date(formData.dueDate).toLocaleDateString()}.`;
+
             this.ui.showToast(successMessage, 'success', 5000);
             return true;
         } catch (error) {
@@ -1829,7 +1842,7 @@ class ExpenseTrackerApp {
         try {
             const notifications = await this.notificationService.getRecentNotifications();
             const unreadCount = await this.notificationService.getUnreadCount();
-            
+
             this.displayNotifications(notifications);
             this.updateUnreadCount(unreadCount);
         } catch (error) {
@@ -1855,11 +1868,11 @@ class ExpenseTrackerApp {
 
         // Group notifications by type
         const groupedNotifications = this.groupNotificationsByType(notifications);
-        
+
         // Separate read and unread notifications
         const unreadNotifications = notifications.filter(n => !n.isRead);
         const readNotifications = notifications.filter(n => n.isRead);
-        
+
         // Create tabs and grouped display
         notificationsList.innerHTML = `
             <div class="notification-tabs">
@@ -1909,7 +1922,7 @@ class ExpenseTrackerApp {
 
         // Set up tab switching
         this.setupNotificationTabs();
-        
+
         // Set up search functionality
         this.setupNotificationSearch(notifications);
     }
@@ -1979,7 +1992,7 @@ class ExpenseTrackerApp {
     renderNotificationCard(notification) {
         const timeAgo = this.notificationService.formatNotificationTime(notification.createdAt || notification.scheduledFor);
         const typeClass = this.getNotificationTypeClass(notification.type);
-        
+
         return `
             <div class="notification-card ${notification.isRead ? 'read' : 'unread'} ${typeClass} ${this.notificationService.getPriorityClass(notification.priority)}" 
                  data-id="${notification.id}" data-type="${notification.type}">
@@ -2061,11 +2074,11 @@ class ExpenseTrackerApp {
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const tabName = button.dataset.tab;
-                
+
                 // Update active tab button
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
-                
+
                 // Update active tab content
                 tabContents.forEach(content => {
                     content.classList.remove('active');
@@ -2089,19 +2102,19 @@ class ExpenseTrackerApp {
 
     filterNotifications(notifications, searchTerm) {
         const notificationCards = document.querySelectorAll('.notification-card');
-        
+
         notificationCards.forEach(card => {
             const title = card.querySelector('.notification-title').textContent.toLowerCase();
             const message = card.querySelector('.notification-message').textContent.toLowerCase();
             const type = card.dataset.type.toLowerCase();
-            
-            const matches = title.includes(searchTerm) || 
-                          message.includes(searchTerm) || 
-                          type.includes(searchTerm);
-            
+
+            const matches = title.includes(searchTerm) ||
+                message.includes(searchTerm) ||
+                type.includes(searchTerm);
+
             card.style.display = matches ? 'block' : 'none';
         });
-        
+
         // Update group counts
         this.updateGroupCounts();
     }
@@ -2125,12 +2138,12 @@ class ExpenseTrackerApp {
         try {
             // Get all notification IDs
             const notifications = await this.notificationService.getAllNotifications();
-            
+
             // Delete all notifications
-            const deletePromises = notifications.map(notification => 
+            const deletePromises = notifications.map(notification =>
                 this.notificationService.deleteNotification(notification.id)
             );
-            
+
             await Promise.all(deletePromises);
             await this.loadNotifications(); // Refresh the list
             this.ui.showToast('All notifications cleared', 'success');
@@ -2184,7 +2197,7 @@ class ExpenseTrackerApp {
     async handleNotificationAction(actionUrl, notificationId) {
         // Mark notification as read when action is taken
         await this.markNotificationRead(notificationId);
-        
+
         // Navigate to the action URL
         if (actionUrl.startsWith('/')) {
             const page = actionUrl.substring(1);
@@ -2305,7 +2318,7 @@ class ExpenseTrackerApp {
     async handleCreatePaymentReminder() {
         const form = document.getElementById('payment-reminder-form');
         const formData = new FormData(form);
-        
+
         const reminderData = {
             name: formData.get('name'),
             amount: formData.get('amount') ? parseFloat(formData.get('amount')) : null,
@@ -2333,7 +2346,7 @@ class ExpenseTrackerApp {
         const dueDate = new Date(reminderData.dueDate);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         if (dueDate < today) {
             this.ui.showToast('Due date cannot be in the past', 'error');
             return false;
@@ -2555,7 +2568,7 @@ class ExpenseTrackerApp {
             }
 
             const reminder = await response.json();
-            
+
             // Show edit form with pre-filled data
             const modalContent = `
                 <div class="payment-reminder-form">
@@ -2601,9 +2614,9 @@ class ExpenseTrackerApp {
                                 <label for="edit-pr-category">Category</label>
                                 <select id="edit-pr-category" name="categoryId" class="form-control">
                                     <option value="">Select category</option>
-                                    ${this.categories.map(cat => 
-                                        `<option value="${cat.id}" ${reminder.category && reminder.category.id === cat.id ? 'selected' : ''}>${cat.name}</option>`
-                                    ).join('')}
+                                    ${this.categories.map(cat =>
+                `<option value="${cat.id}" ${reminder.category && reminder.category.id === cat.id ? 'selected' : ''}>${cat.name}</option>`
+            ).join('')}
                                 </select>
                             </div>
                             
@@ -2672,7 +2685,7 @@ class ExpenseTrackerApp {
     async handleUpdatePaymentReminder(reminderId) {
         const form = document.getElementById('edit-payment-reminder-form');
         const formData = new FormData(form);
-        
+
         const reminderData = {
             name: formData.get('name'),
             amount: formData.get('amount') ? parseFloat(formData.get('amount')) : null,

@@ -91,7 +91,7 @@ class UIComponents {
         const bodyElement = this.modalOverlay.querySelector('.modal-body');
 
         titleElement.textContent = title;
-        
+
         // Add form actions if provided
         let modalContent = content;
         if (options.onConfirm) {
@@ -102,7 +102,7 @@ class UIComponents {
                 </div>
             `;
         }
-        
+
         bodyElement.innerHTML = modalContent;
 
         this.modalOverlay.classList.add('active');
@@ -139,14 +139,81 @@ class UIComponents {
 
     closeModal() {
         this.modalOverlay.classList.remove('active');
-        
+
         // Call onClose callback if provided
         const onClose = this.modalOverlay.dataset.onClose;
         if (onClose && typeof window[onClose] === 'function') {
             window[onClose]();
         }
-        
+
         delete this.modalOverlay.dataset.onClose;
+    }
+
+    // Input Modal
+    showInputModal(title, currentValue, onSave, type = 'number', step = '0.01') {
+        const overlay = document.getElementById('input-modal-overlay');
+        if (!overlay) return;
+
+        const titleEl = document.getElementById('input-modal-title');
+        const valueEl = document.getElementById('input-modal-value');
+        const saveBtn = document.getElementById('input-modal-save');
+        const cancelBtn = document.getElementById('input-modal-cancel');
+        const closeBtn = document.getElementById('input-modal-close');
+        const errorEl = document.getElementById('input-modal-error');
+
+        // Reset state
+        titleEl.textContent = title;
+        valueEl.value = currentValue || '';
+        valueEl.type = type;
+        if (type === 'number') {
+            valueEl.step = step;
+        }
+        errorEl.style.display = 'none';
+        errorEl.textContent = '';
+
+        // Show modal
+        overlay.classList.add('active');
+        valueEl.focus();
+
+        // Clear previous event listeners by cloning
+        const newSaveBtn = saveBtn.cloneNode(true);
+        saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+        const newCloseBtn = closeBtn.cloneNode(true);
+        closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+
+        // Add new listeners
+        newSaveBtn.addEventListener('click', () => {
+            const value = valueEl.value;
+            if (!value || (type === 'number' && parseFloat(value) < 0)) {
+                errorEl.textContent = 'Please enter a valid value';
+                errorEl.style.display = 'block';
+                return;
+            }
+            onSave(value);
+            this.closeInputModal();
+        });
+
+        const closeHandler = () => this.closeInputModal();
+        newCancelBtn.addEventListener('click', closeHandler);
+        newCloseBtn.addEventListener('click', closeHandler);
+
+        // Handle Enter key
+        valueEl.onkeyup = (e) => {
+            if (e.key === 'Enter') {
+                newSaveBtn.click();
+            }
+        };
+    }
+
+    closeInputModal() {
+        const overlay = document.getElementById('input-modal-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+        }
     }
 
     // Confirmation dialog
@@ -269,11 +336,11 @@ class UIComponents {
             if (e.target.classList.contains('category-toggle')) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const toggle = e.target;
                 const categoryItem = toggle.closest('.category-item');
                 const children = categoryItem.parentElement.querySelector('.category-children');
-                
+
                 if (children) {
                     const isExpanded = children.classList.contains('expanded');
                     children.classList.toggle('expanded');
@@ -292,11 +359,11 @@ class UIComponents {
                     container.querySelectorAll('.category-item').forEach(item => {
                         item.classList.remove('selected');
                     });
-                    
+
                     // Add selection to clicked item
                     const categoryItem = e.target.closest('.category-item');
                     categoryItem.classList.add('selected');
-                    
+
                     // Call selection callback
                     if (options.onSelect) {
                         const categoryId = e.target.dataset.categoryId;
@@ -350,16 +417,16 @@ class UIComponents {
             html += `
                 <li>
                     <div class="category-item" data-level="${level}" ${isSelectable}>
-                        ${hasChildren ? 
-                            `<button class="category-toggle" aria-expanded="false" tabindex="0">▶</button>` : 
-                            '<span class="category-spacer"></span>'
-                        }
+                        ${hasChildren ?
+                    `<button class="category-toggle" aria-expanded="false" tabindex="0">▶</button>` :
+                    '<span class="category-spacer"></span>'
+                }
                         <span class="category-name" data-category-id="${categoryId}" ${isSelectable}>${category.name}</span>
                     </div>
-                    ${hasChildren ? 
-                        `<div class="category-children">${this.renderCategoryTreeHTML(category.children, options, level + 1)}</div>` : 
-                        ''
-                    }
+                    ${hasChildren ?
+                    `<div class="category-children">${this.renderCategoryTreeHTML(category.children, options, level + 1)}</div>` :
+                    ''
+                }
                 </li>
             `;
         });
@@ -372,7 +439,7 @@ class UIComponents {
     renderCategoryDropdown(categories, container, options = {}) {
         if (!container) return;
 
-        const selectedCategory = options.selectedId ? 
+        const selectedCategory = options.selectedId ?
             categories.find(c => c.id == options.selectedId) : null;
         const selectedText = selectedCategory ? selectedCategory.name : (options.placeholder || 'Select a category');
 
@@ -399,7 +466,7 @@ class UIComponents {
         toggle.addEventListener('click', (e) => {
             e.preventDefault();
             const isOpen = menu.classList.contains('active');
-            
+
             // Close all other dropdowns
             document.querySelectorAll('.category-dropdown-menu.active').forEach(otherMenu => {
                 if (otherMenu !== menu) {
@@ -408,7 +475,7 @@ class UIComponents {
                     otherMenu.parentElement.querySelector('.dropdown-arrow').textContent = '▼';
                 }
             });
-            
+
             menu.classList.toggle('active');
             toggle.setAttribute('aria-expanded', !isOpen);
             arrow.textContent = isOpen ? '▼' : '▲';
@@ -419,21 +486,21 @@ class UIComponents {
             if (e.target.classList.contains('category-dropdown-item')) {
                 const categoryId = e.target.dataset.categoryId;
                 const categoryName = e.target.textContent.trim();
-                
+
                 // Update selected text
                 selectedTextEl.textContent = categoryName;
-                
+
                 // Update selection state
                 menu.querySelectorAll('.category-dropdown-item').forEach(item => {
                     item.classList.remove('selected');
                 });
                 e.target.classList.add('selected');
-                
+
                 // Close dropdown
                 menu.classList.remove('active');
                 toggle.setAttribute('aria-expanded', 'false');
                 arrow.textContent = '▼';
-                
+
                 // Call selection callback
                 if (options.onSelect) {
                     options.onSelect(categoryId, categoryName);
@@ -465,7 +532,7 @@ class UIComponents {
         menu.addEventListener('keydown', (e) => {
             const items = Array.from(menu.querySelectorAll('.category-dropdown-item'));
             const currentIndex = items.indexOf(document.activeElement);
-            
+
             switch (e.key) {
                 case 'ArrowDown':
                     e.preventDefault();
@@ -613,7 +680,7 @@ class UIComponents {
         if (!container) return;
 
         const errorInfo = this.analyzeErrorForDisplay(error);
-        
+
         container.innerHTML = `
             <div class="error-message ${errorInfo.severity}">
                 <div class="error-icon">${errorInfo.icon}</div>
@@ -714,7 +781,7 @@ class UIComponents {
     showToast(message, type = 'info', duration = 5000, options = {}) {
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        
+
         const iconMap = {
             success: '✓',
             error: '❌',
@@ -786,7 +853,7 @@ class UIComponents {
         if (!container) return;
 
         const percentage = Math.min(100, Math.max(0, progress));
-        
+
         container.innerHTML = `
             <div class="progress-indicator">
                 ${options.label ? `<div class="progress-label">${options.label}</div>` : ''}

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
@@ -7,16 +8,17 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Expense Tracker</title>
-    
+
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#2196F3">
-    <meta name="description" content="Personal expense tracking with Google Sheets integration, offline support, and smart notifications">
+    <meta name="description"
+        content="Personal expense tracking with Google Sheets integration, offline support, and smart notifications">
     <meta name="keywords" content="expense tracker, finance, budget, money management, PWA">
     <meta name="author" content="Expense Tracker Team">
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="canonical" href="https://expense-tracker.app/">
-    
+
     <!-- Apple PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -26,58 +28,62 @@
     <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-192x192.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.svg">
     <link rel="apple-touch-startup-image" href="/icons/icon-192x192.svg">
-    
+
     <!-- Microsoft PWA Meta Tags -->
     <meta name="msapplication-TileColor" content="#2196F3">
     <meta name="msapplication-TileImage" content="/icons/icon-192x192.svg">
     <meta name="msapplication-config" content="/browserconfig.xml">
     <meta name="msapplication-starturl" content="/">
     <meta name="msapplication-navbutton-color" content="#2196F3">
-    
+
     <!-- Additional PWA Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Expense Tracker">
     <meta name="format-detection" content="telephone=no">
     <meta name="HandheldFriendly" content="true">
     <meta name="MobileOptimized" content="width">
-    
+
     <!-- Security Headers -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src 'self' https:;">
-    
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src 'self' https:;">
+
     <!-- Open Graph Meta Tags -->
     <meta property="og:title" content="Expense Tracker - Personal Finance Manager">
-    <meta property="og:description" content="Track your expenses, manage budgets, and analyze spending patterns with our powerful PWA">
+    <meta property="og:description"
+        content="Track your expenses, manage budgets, and analyze spending patterns with our powerful PWA">
     <meta property="og:image" content="/icons/icon-512x512.png">
     <meta property="og:url" content="https://expense-tracker.app/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Expense Tracker">
-    
+
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Expense Tracker - Personal Finance Manager">
-    <meta name="twitter:description" content="Track your expenses, manage budgets, and analyze spending patterns with our powerful PWA">
+    <meta name="twitter:description"
+        content="Track your expenses, manage budgets, and analyze spending patterns with our powerful PWA">
     <meta name="twitter:image" content="/icons/icon-512x512.png">
-    
+
     <!-- Styles -->
     <link rel="stylesheet" href="/css/styles.css?nocache=20260122180000&force=reload">
     <link rel="stylesheet" href="/css/components.css?nocache=20260122180000&force=reload">
-    
+
     <!-- Chart.js for analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
     <div id="app">
         <!-- Navigation -->
         <nav class="navbar">
             <div class="nav-container">
                 <h1 class="nav-title">Expense Tracker</h1>
-                
+
                 <!-- Mobile menu toggle -->
                 <button class="nav-menu-toggle" id="nav-menu-toggle" aria-label="Toggle navigation menu">
                     <span>☰</span>
                 </button>
-                
+
                 <div class="nav-menu" id="nav-menu">
                     <button class="nav-item active" data-page="dashboard">Dashboard</button>
                     <button class="nav-item" data-page="expenses">Expenses</button>
@@ -85,7 +91,7 @@
                     <button class="nav-item" data-page="reminders">Reminders</button>
                     <button class="nav-item" data-page="settings">Settings</button>
                 </div>
-                
+
                 <!-- Removed sync status - local-only operation -->
             </div>
         </nav>
@@ -164,7 +170,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="insight-card">
                                 <div class="insight-icon">💰</div>
                                 <div class="insight-content">
@@ -175,7 +181,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="insight-card">
                                 <div class="insight-icon">📈</div>
                                 <div class="insight-content">
@@ -209,7 +215,7 @@
                                 </div>
                                 <div id="budget-status" class="budget-status"></div>
                             </div>
-                            
+
                             <div class="budget-card">
                                 <div class="budget-header">
                                     <h3>Savings Goal</h3>
@@ -217,10 +223,12 @@
                                 </div>
                                 <div class="savings-progress">
                                     <div class="progress-bar">
-                                        <div id="savings-progress-fill" class="progress-fill savings" style="width: 0%"></div>
+                                        <div id="savings-progress-fill" class="progress-fill savings" style="width: 0%">
+                                        </div>
                                     </div>
                                     <div class="savings-info">
-                                        <span id="savings-amount">$0</span> saved towards <span id="savings-goal">$0</span>
+                                        <span id="savings-amount">$0</span> saved towards <span
+                                            id="savings-goal">$0</span>
                                     </div>
                                 </div>
                                 <div id="savings-status" class="savings-status"></div>
@@ -246,7 +254,7 @@
                                     <p>Quick entry with category icons</p>
                                 </div>
                             </div>
-                            
+
                             <div class="action-card secondary" id="view-analytics">
                                 <div class="action-icon">📊</div>
                                 <div class="action-content">
@@ -254,7 +262,7 @@
                                     <p>Detailed reports & export options</p>
                                 </div>
                             </div>
-                            
+
                             <div class="action-card tertiary" id="export-data">
                                 <div class="action-icon">📄</div>
                                 <div class="action-content">
@@ -277,17 +285,17 @@
                                 <label for="expense-description">Description</label>
                                 <input type="text" id="expense-description" name="description" required>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label for="expense-amount">Amount</label>
                                 <input type="number" id="expense-amount" name="amount" step="0.01" min="0" required>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label for="expense-date">Date</label>
                                 <input type="date" id="expense-date" name="date" required>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label for="expense-category">Category</label>
                                 <select id="expense-category" name="categoryId" required>
@@ -295,7 +303,7 @@
                                     <!-- Categories will be populated dynamically -->
                                 </select>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label for="expense-payment-method">Payment Method</label>
                                 <select id="expense-payment-method" name="paymentMethod" required>
@@ -306,7 +314,7 @@
                                     <option value="bank-transfer">🏦 Bank Transfer</option>
                                 </select>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label for="expense-tags">Tags</label>
                                 <select id="expense-tags" name="tags" multiple>
@@ -319,14 +327,14 @@
                                 </select>
                                 <small>Hold Ctrl/Cmd to select multiple tags</small>
                             </div>
-                            
+
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-primary">Add Expense</button>
                                 <button type="reset" class="btn btn-secondary">Clear</button>
                             </div>
                         </form>
                     </div>
-                    
+
                     <div class="expense-list-container">
                         <h2>Monthly Expenses</h2>
                         <div class="month-selector">
@@ -345,13 +353,13 @@
             <div id="analytics-page" class="page">
                 <div class="analytics-container">
                     <h2>Expense Analytics</h2>
-                    
+
                     <div class="chart-container">
                         <div class="chart-section">
                             <h3>Monthly Trends</h3>
                             <canvas id="monthly-trends-chart"></canvas>
                         </div>
-                        
+
                         <div class="chart-section">
                             <div class="chart-header">
                                 <h3>Category Breakdown</h3>
@@ -374,14 +382,15 @@
                     <div class="page-header">
                         <h2>Notifications & Reminders</h2>
                     </div>
-                    
+
                     <!-- Notification Center -->
                     <div class="notification-center">
                         <div class="notification-header">
                             <h3>📢 Notification Center</h3>
                             <div class="notification-actions">
                                 <span id="unread-count" class="unread-badge">0</span>
-                                <button class="btn btn-small" onclick="app.markAllNotificationsRead()">Mark All Read</button>
+                                <button class="btn btn-small" onclick="app.markAllNotificationsRead()">Mark All
+                                    Read</button>
                                 <button class="btn btn-small" onclick="app.refreshNotifications()">🔄 Refresh</button>
                             </div>
                         </div>
@@ -389,7 +398,7 @@
                             <!-- Notifications will be populated here -->
                         </div>
                     </div>
-                    
+
                     <!-- Payment Reminders Management -->
                     <div class="payment-reminders-section">
                         <div class="section-header">
@@ -403,12 +412,13 @@
                                 </button>
                             </div>
                         </div>
-                        
+
                         <!-- Filter and Sort Options -->
                         <div class="reminders-filters">
                             <div class="filter-group">
                                 <label for="reminder-status-filter">Status:</label>
-                                <select id="reminder-status-filter" class="filter-select" onchange="app.filterPaymentReminders()">
+                                <select id="reminder-status-filter" class="filter-select"
+                                    onchange="app.filterPaymentReminders()">
                                     <option value="all">All Reminders</option>
                                     <option value="active">Active</option>
                                     <option value="due">Due Soon</option>
@@ -417,7 +427,8 @@
                             </div>
                             <div class="filter-group">
                                 <label for="reminder-frequency-filter">Frequency:</label>
-                                <select id="reminder-frequency-filter" class="filter-select" onchange="app.filterPaymentReminders()">
+                                <select id="reminder-frequency-filter" class="filter-select"
+                                    onchange="app.filterPaymentReminders()">
                                     <option value="all">All Frequencies</option>
                                     <option value="MONTHLY">Monthly</option>
                                     <option value="QUARTERLY">Quarterly</option>
@@ -425,7 +436,7 @@
                                 </select>
                             </div>
                         </div>
-                        
+
                         <!-- Payment Reminders List -->
                         <div id="payment-reminders-list" class="payment-reminders-list">
                             <!-- Payment reminders will be populated here -->
@@ -444,7 +455,7 @@
                         </div>
                     </div>
 
-                    
+
                     <!-- Quick Actions -->
                     <div class="quick-notification-actions">
                         <h3>🚀 Quick Actions</h3>
@@ -470,11 +481,11 @@
             <div id="settings-page" class="page">
                 <div class="settings-container">
                     <h2>Settings</h2>
-                    
+
                     <!-- Notification Settings Section -->
                     <div class="settings-section">
                         <h3>🔔 Notification Settings</h3>
-                        
+
                         <!-- Channel Preferences -->
                         <div class="setting-group">
                             <h4>Notification Channels</h4>
@@ -489,7 +500,7 @@
                                     </label>
                                     <div id="push-permission-status" class="permission-status"></div>
                                 </div>
-                                
+
                                 <div class="setting-item">
                                     <label class="setting-label">
                                         <input type="checkbox" id="enable-email-notifications" class="setting-checkbox">
@@ -499,14 +510,17 @@
                                         </span>
                                     </label>
                                     <div class="email-settings" id="email-settings" style="display: none;">
-                                        <input type="email" id="notification-email" placeholder="Enter your email address" class="setting-input">
-                                        <button type="button" id="test-email-btn" class="btn btn-small btn-secondary">Send Test Email</button>
+                                        <input type="email" id="notification-email"
+                                            placeholder="Enter your email address" class="setting-input">
+                                        <button type="button" id="test-email-btn"
+                                            class="btn btn-small btn-secondary">Send Test Email</button>
                                     </div>
                                 </div>
-                                
+
                                 <div class="setting-item">
                                     <label class="setting-label">
-                                        <input type="checkbox" id="enable-in-app-notifications" class="setting-checkbox" checked>
+                                        <input type="checkbox" id="enable-in-app-notifications" class="setting-checkbox"
+                                            checked>
                                         <span class="setting-text">
                                             <strong>🔔 In-App Notifications</strong>
                                             <small>Show notifications within the app</small>
@@ -515,11 +529,11 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Notification Types -->
                         <div class="setting-group">
                             <h4>Notification Types</h4>
-                            
+
                             <!-- Daily Reminders -->
                             <div class="notification-type-setting">
                                 <div class="setting-item">
@@ -536,7 +550,7 @@
                                     <input type="time" id="daily-reminder-time" class="setting-input" value="20:00">
                                 </div>
                             </div>
-                            
+
                             <!-- Budget Alerts -->
                             <div class="notification-type-setting">
                                 <div class="setting-item">
@@ -551,12 +565,13 @@
                                 <div class="threshold-setting" id="budget-threshold-setting" style="display: none;">
                                     <label for="budget-warning-threshold">Warning Threshold:</label>
                                     <div class="threshold-input-group">
-                                        <input type="range" id="budget-warning-threshold" class="setting-range" min="50" max="100" value="80">
+                                        <input type="range" id="budget-warning-threshold" class="setting-range" min="50"
+                                            max="100" value="80">
                                         <span id="threshold-value">80%</span>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Weekly Summary -->
                             <div class="notification-type-setting">
                                 <div class="setting-item">
@@ -587,7 +602,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Streak Rewards -->
                             <div class="notification-type-setting">
                                 <div class="setting-item">
@@ -600,7 +615,7 @@
                                     </label>
                                 </div>
                             </div>
-                            
+
                             <!-- Badges -->
                             <div class="notification-type-setting">
                                 <div class="setting-item">
@@ -614,7 +629,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Quiet Hours -->
                         <div class="setting-group">
                             <h4>🌙 Quiet Hours</h4>
@@ -631,15 +646,18 @@
                                 <div id="quiet-hours-status" class="quiet-hours-status"></div>
                             </div>
                         </div>
-                        
+
                         <!-- Action Buttons -->
                         <div class="settings-actions">
-                            <button type="button" id="save-notification-settings" class="btn btn-primary">💾 Save Settings</button>
-                            <button type="button" id="reset-notification-settings" class="btn btn-secondary">🔄 Reset to Defaults</button>
-                            <button type="button" id="test-notifications" class="btn btn-secondary">🧪 Test Notifications</button>
+                            <button type="button" id="save-notification-settings" class="btn btn-primary">💾 Save
+                                Settings</button>
+                            <button type="button" id="reset-notification-settings" class="btn btn-secondary">🔄 Reset to
+                                Defaults</button>
+                            <button type="button" id="test-notifications" class="btn btn-secondary">🧪 Test
+                                Notifications</button>
                         </div>
                     </div>
-                    
+
                     <!-- Application Settings Section -->
                     <div class="settings-section">
                         <h3>⚙️ Application Settings</h3>
@@ -661,6 +679,28 @@
         </main>
     </div>
 
+    <!-- Generic Input Modal -->
+    <div id="input-modal-overlay" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="input-modal-title" class="modal-title">Enter Value</h3>
+                <button id="input-modal-close" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label id="input-modal-label" for="input-modal-value">Value</label>
+                    <input type="number" id="input-modal-value" class="form-input" step="0.01" min="0">
+                    <p id="input-modal-error" class="form-feedback error" style="display: none;"></p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="input-modal-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="input-modal-save" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+
+
     <!-- Scripts -->
     <script src="/js/error-handler.js?nocache=20260122180000&force=reload"></script>
     <script src="/js/expense-service.js?nocache=20260122180000&force=reload"></script>
@@ -675,32 +715,32 @@
     <!-- Cache Detection and Force Reload Script -->
     <script>
         // Force reload if old cached versions are detected
-        (function() {
+        (function () {
             const expectedVersion = '20260122161500';
-            
+
             // Check if we're loading old cached files
-            window.addEventListener('load', function() {
-                setTimeout(function() {
+            window.addEventListener('load', function () {
+                setTimeout(function () {
                     // Check for old version indicators in console or global variables
                     const scripts = document.querySelectorAll('script[src*="js/"]');
                     let hasOldCache = false;
-                    
+
                     scripts.forEach(script => {
                         if (script.src && !script.src.includes(expectedVersion)) {
                             console.warn('OLD CACHE DETECTED:', script.src);
                             hasOldCache = true;
                         }
                     });
-                    
+
                     // Also check if old app version is running
                     if (window.app && window.app.version && window.app.version !== expectedVersion) {
                         console.warn('OLD APP VERSION DETECTED:', window.app.version, 'Expected:', expectedVersion);
                         hasOldCache = true;
                     }
-                    
+
                     if (hasOldCache) {
                         console.log('FORCING AGGRESSIVE CACHE REFRESH...');
-                        
+
                         // Clear all possible caches
                         Promise.all([
                             // Clear service worker caches
@@ -708,7 +748,7 @@
                                 console.log('Clearing caches:', names);
                                 return Promise.all(names.map(name => caches.delete(name)));
                             }) : Promise.resolve(),
-                            
+
                             // Clear storage
                             new Promise(resolve => {
                                 try {
@@ -720,7 +760,7 @@
                                 }
                                 resolve();
                             }),
-                            
+
                             // Clear IndexedDB
                             'indexedDB' in window ? new Promise(resolve => {
                                 try {
@@ -745,7 +785,7 @@
                             url.searchParams.set('v', expectedVersion);
                             url.searchParams.set('cb', cacheBust);
                             url.searchParams.set('nocache', 'true');
-                            
+
                             console.log('Reloading with cache bust:', url.href);
                             window.location.replace(url.href);
                         });
@@ -760,32 +800,32 @@
         // Immediate theme application function
         function toggleTheme(theme) {
             console.log('INLINE THEME: Theme changed to:', theme);
-            
+
             // Apply theme immediately to both html and body
             document.documentElement.setAttribute('data-theme', theme);
             document.body.setAttribute('data-theme', theme);
             document.documentElement.className = theme + '-theme';
             document.body.className = theme + '-theme';
-            
+
             // Save to localStorage as backup
             localStorage.setItem('theme', theme);
-            
+
             // Show immediate feedback
             showThemeToast('Theme changed to ' + theme + ' mode');
-            
+
             // Force style recalculation
             document.documentElement.style.display = 'none';
             document.documentElement.offsetHeight; // Trigger reflow
             document.documentElement.style.display = '';
-            
+
             console.log('INLINE THEME: Applied theme classes and attributes');
         }
-        
+
         function showThemeToast(message) {
             // Remove any existing toasts
             const existingToasts = document.querySelectorAll('.theme-toast');
             existingToasts.forEach(toast => toast.remove());
-            
+
             // Create a simple toast notification
             const toast = document.createElement('div');
             toast.className = 'theme-toast';
@@ -805,7 +845,7 @@
             `;
             toast.textContent = message;
             document.body.appendChild(toast);
-            
+
             // Remove after 3 seconds
             setTimeout(() => {
                 if (toast.parentNode) {
@@ -813,20 +853,20 @@
                 }
             }, 3000);
         }
-        
+
         // Initialize theme on page load - run immediately
-        (function() {
+        (function () {
             const savedTheme = localStorage.getItem('theme') || 'light';
             console.log('INLINE THEME: Initializing with saved theme:', savedTheme);
-            
+
             // Apply theme immediately
             document.documentElement.setAttribute('data-theme', savedTheme);
             document.body.setAttribute('data-theme', savedTheme);
             document.documentElement.className = savedTheme + '-theme';
             document.body.className = savedTheme + '-theme';
-            
+
             // Set selector when DOM is ready
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', function () {
                 const themeSelector = document.getElementById('theme-selector');
                 if (themeSelector) {
                     themeSelector.value = savedTheme;
@@ -835,7 +875,7 @@
             });
         })();
     </script>
-    
+
     <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
@@ -851,4 +891,5 @@
         }
     </script>
 </body>
+
 </html>
